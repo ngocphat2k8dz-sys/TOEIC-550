@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-const publicRoutes = new Set(['welcome', 'login', 'register', 'forgot-password', 'reset-password'])
+const publicRoutes = new Set(['welcome', 'login', 'forgot-password', 'reset-password'])
 const nextKey = 'toeic-next-study-route'
 
 export function currentRoute() {
@@ -33,7 +33,7 @@ export function navigate(route: string, replace = false) {
 }
 
 function validReturnRoute(route: string) {
-  return /^[a-z][a-z0-9-]*(\/[a-z0-9%._~&–-]+){0,3}$/i.test(route) && !isPublicRoute(route)
+  return /^[a-z][a-z0-9-]*(\/[a-z0-9%._~&–-]+){0,3}$/i.test(route) && route !== 'register' && !isPublicRoute(route)
 }
 
 export function rememberStudyRoute(route: string) {

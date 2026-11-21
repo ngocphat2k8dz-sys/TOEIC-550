@@ -23,10 +23,11 @@ function rememberRecovery(user: User | null) {
 export function authMessage(error: AuthError) {
   switch (error.code) {
     case 'invalid_credentials': return 'Email hoặc mật khẩu chưa đúng.'
-    case 'email_not_confirmed': return 'Hãy xác nhận email đăng ký, sau đó thử đăng nhập lại.'
+    case 'email_not_confirmed': return 'Email của tài khoản chưa được xác nhận. Vui lòng liên hệ quản trị viên nếu bạn chưa có liên kết xác nhận.'
     case 'email_address_not_authorized': return 'Dịch vụ gửi thư của dự án chưa hỗ trợ địa chỉ này.'
     case 'weak_password': return 'Mật khẩu chưa đáp ứng yêu cầu. Hãy thử mật khẩu dài và khó đoán hơn.'
     case 'same_password': return 'Mật khẩu mới cần khác mật khẩu hiện tại.'
+    case 'reauthentication_needed': return 'Hãy đăng xuất và đăng nhập lại trước khi đổi mật khẩu.'
     case 'over_email_send_rate_limit':
     case 'over_request_rate_limit': return 'Bạn đã thử nhiều lần. Hãy đợi một lúc rồi thử lại.'
     case 'user_already_exists': return 'Tài khoản này đã tồn tại. Hãy đăng nhập hoặc đặt lại mật khẩu.'

@@ -6,7 +6,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
   return <>
     <header className="welcome-topbar">
       <a className="brand" href="#welcome"><div className="brand-symbol"><GraduationCap size={23} /></div><span>TOEIC 550+<small>STUDY</small></span></a>
-      <nav aria-label="Tài khoản" className="button-group"><a className="button secondary" href="#login">Đăng nhập</a><a className="button primary" href="#register">Đăng ký</a></nav>
+      <nav aria-label="Tài khoản"><a className="button secondary" href="#login">Đăng nhập</a></nav>
     </header>
     <main className="welcome-main" id="public-main">{children}</main>
   </>
@@ -24,7 +24,7 @@ export function Welcome() {
         <span className="hero-badge"><Sprout size={16} /> Dành cho người Việt học từ đầu</span>
         <h1>Từ mất gốc đến TOEIC 550+</h1>
         <p>Học từng bước bằng tiếng Việt. Bắt đầu với âm, từ và câu ngắn rồi chuyển sang luyện Listening và Reading theo mục tiêu.</p>
-        <div className="hero-actions"><a className="button hero-primary" href="#register">Tạo tài khoản</a><a className="button hero-secondary" href="#login">Đăng nhập để học</a></div>
+        <div className="hero-actions"><a className="button hero-primary" href="#login">Đăng nhập để học</a></div>
       </div>
     </section>
     <div className="welcome-features">

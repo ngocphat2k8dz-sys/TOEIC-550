@@ -1,21 +1,18 @@
 import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { RefreshCw, Save, UserRound } from 'lucide-react'
-import { EmptyState, PageIntro } from '../../components/UI'
+import { PageIntro } from '../../components/UI'
 import { compactDate, durationText } from '../../progress'
 import type { useLearning } from '../../hooks/useLearning'
+import { ChangePassword } from './ChangePassword'
 
 type Learning = ReturnType<typeof useLearning>
 
 export function AccountPage({ user, learning, streak, seconds, notice }: {
-  user: User | null; learning: Learning; streak: number; seconds: number; notice: string
+  user: User; learning: Learning; streak: number; seconds: number; notice: string
 }) {
   const [draft, setDraft] = useState<{ name?: string; target?: string; goal?: string }>({})
   const [submitted, setSubmitted] = useState(false)
-  if (!user) return <>
-    <PageIntro title="Tài khoản" description="Lưu tiến độ và tiếp tục học trên các thiết bị của bạn." />
-    <EmptyState title="Bạn đang học với tư cách khách"><div className="button-group"><a className="button primary" href="#login">Đăng nhập</a><a className="button secondary" href="#register">Đăng ký</a></div></EmptyState>
-  </>
   const { progress, displayName, ready } = learning
   const name = draft.name ?? displayName
   const target = draft.target ?? String(progress.settings.target)
@@ -54,6 +51,7 @@ export function AccountPage({ user, learning, streak, seconds, notice }: {
         <button className="button secondary" onClick={() => void learning.sync()} disabled={learning.phase === 'connecting'}><RefreshCw size={16} /> Đồng bộ ngay</button>
         {learning.phase === 'synced' && !learning.pending && <p className="profile-synced" role="status">Tiến độ đã đồng bộ.</p>}
       </section>
+      <ChangePassword />
     </div>
   </>
 }

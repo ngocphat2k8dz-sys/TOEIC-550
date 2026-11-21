@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Shell } from './components/Shell'
 import { EmptyState } from './components/UI'
+import { StudentsPage } from './features/admin/StudentsPage'
 import { parts } from './data/course'
 import { grammarLessons } from './data/grammar'
 import { AccountMenu } from './features/profile/AccountMenu'
@@ -15,6 +16,7 @@ import { MistakesPage, SettingsPage, StatisticsPage, WeaknessPage } from './feat
 import { Quiz } from './features/Quiz'
 import { PartPage, PlanPage, RoadmapPage, SkillPage, TestPage } from './features/StudyPages'
 import { useLearning } from './hooks/useLearning'
+import { useAdminAccess } from './hooks/useAdminAccess'
 import type { AuthState } from './hooks/useAuth'
 import { getStats } from './progress'
 import { activeQuiz, setActiveQuiz } from './quizDraft'
@@ -30,6 +32,7 @@ export default function Workspace({ auth, route }: { auth: AuthState & { user: N
   const ownerId = auth.user.id
   const [quiz, setQuiz] = useState<QuizConfig | null>(() => route === 'practice' ? activeQuiz(ownerId) : null)
   const learning = useLearning(ownerId)
+  const admin = useAdminAccess()
   const { progress, dispatch, storageIssue } = learning
   const stats = getStats(progress)
   const [page, section, focus] = route.split('/')
@@ -96,6 +99,16 @@ export default function Workspace({ auth, route }: { auth: AuthState & { user: N
 
   function showPage() {
     if (page === 'account') return <AccountPage user={auth.user} learning={learning} streak={stats.streak} seconds={stats.totalSeconds} notice={auth.notice} />
+    if (page === 'admin') {
+      if (admin.access === 'checking') return <EmptyState title="Đang kiểm tra quyền quản trị" />
+      if (admin.access === 'unavailable') return <EmptyState title="Chưa kiểm tra được quyền quản trị">
+        <button className="button secondary" onClick={admin.retry}>Thử lại</button>
+      </EmptyState>
+      if (admin.access === 'denied') return <EmptyState title="Bạn không có quyền truy cập">
+        <a className="button primary" href="#home">Về tổng quan</a>
+      </EmptyState>
+      if ((!section || section === 'users') && !focus) return <StudentsPage />
+    }
     if (!learning.ready) return <EmptyState title={learning.phase === 'connecting' ? 'Đang tải tiến độ tài khoản' : 'Chưa tải được tiến độ tài khoản'}>
       {learning.phase !== 'connecting' && <button className="button secondary" onClick={() => void learning.sync()}>Thử đồng bộ lại</button>}
     </EmptyState>
@@ -133,7 +146,7 @@ export default function Workspace({ auth, route }: { auth: AuthState & { user: N
     return <EmptyState title="Trang này không tồn tại"><a className="button primary" href="#home">Về tổng quan</a></EmptyState>
   }
 
-  return <Shell route={route} settings={progress.settings} xp={progress.xp} streak={stats.streak} storageIssue={storageIssue}
+  return <Shell route={route} settings={progress.settings} xp={progress.xp} streak={stats.streak} storageIssue={storageIssue} isAdmin={admin.access === 'allowed'}
     onTheme={() => { if (learning.ready) toggleTheme() }}
     account={<AccountMenu user={auth.user} displayName={learning.displayName} route={route} />}>
     {learning.phase === 'offline' && <p className="storage-warning" role="status">Bạn đang ngoại tuyến. {learning.ready ? 'Thay đổi được lưu trên thiết bị này.' : 'Kết nối mạng để tải tiến độ tài khoản.'}{ownerId && learning.pending > 0 && ` ${learning.pending} thay đổi chờ đồng bộ.`}</p>}

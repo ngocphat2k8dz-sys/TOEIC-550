@@ -22,6 +22,7 @@ export default function App() {
   if (auth.loading) return <AuthLoading />
   const destination = auth.recovering ? 'reset-password' : route || (auth.user ? 'home' : 'welcome')
   if (destination === 'welcome') return <PublicLayout><Welcome /></PublicLayout>
+  if (destination === 'register') return <RequireSignIn route={destination} />
   if (isPublicRoute(destination)) {
     const page = destination as AuthRoute
     return <PublicLayout><AuthPage key={page} page={page} auth={auth} /></PublicLayout>

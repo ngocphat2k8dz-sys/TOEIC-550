@@ -15,7 +15,7 @@ npm install
 npm run dev
 ~~~
 
-Mở địa chỉ Vite in trong terminal, thường là http://localhost:5173. Để đăng nhập và mở bài học, cấu hình Supabase theo **A → B** trong [SUPABASE_SETUP.md](SUPABASE_SETUP.md). Khi thiếu cấu hình, bản local vẫn có trang chào mừng.
+Mở địa chỉ Vite in trong terminal, thường là http://localhost:5173. Để đăng nhập và mở bài học, cấu hình Supabase theo **A → B** trong [SUPABASE_SETUP.md](SUPABASE_SETUP.md). Xem [hướng dẫn cấp tài khoản](ADMIN_SETUP.md) để gán Admin và bật trang quản lý học viên. Khi thiếu cấu hình, bản local vẫn có trang chào mừng.
 
 ~~~powershell
 npm run check
@@ -30,7 +30,8 @@ Bản build xuất ra **dist/**. Dùng preview để kiểm tra bản build trư
 | Đường dẫn | Nội dung |
 | --- | --- |
 | [src/data](src/data) và [public/listening](public/listening) | Nội dung gốc, ảnh và audio |
-| [src/features/auth](src/features/auth) và [src/features/profile](src/features/profile) | Đăng ký, đăng nhập, khôi phục mật khẩu và hồ sơ |
+| [src/features/auth](src/features/auth) và [src/features/profile](src/features/profile) | Đăng nhập, khôi phục hoặc đổi mật khẩu và hồ sơ |
+| [src/features/admin](src/features/admin) và [supabase/functions/create-student](supabase/functions/create-student) | Danh sách và cấp tài khoản học viên |
 | [src/hooks](src/hooks) và [src/services](src/services) | Phiên đăng nhập, hàng đợi, hợp nhất và cập nhật cloud |
 | [src/lib](src/lib) | Supabase client và kiểu dữ liệu RPC |
 | [supabase/migrations](supabase/migrations) | Schema, chính sách RLS và RPC |
@@ -42,7 +43,7 @@ Bản build xuất ra **dist/**. Dùng preview để kiểm tra bản build trư
 - Nhập dữ liệu giữ thiết lập và trạng thái đã có trên cloud. Nó thêm lần làm bài, phiên học, bài hoàn thành và từ mới dựa trên ID. Với lịch sử cũ thiếu ID, khóa được tạo từ câu hỏi, thời điểm và lựa chọn. Đối với XP của hai lịch sử chồng lấp, ứng dụng chỉ cộng phần xác định từ hoạt động được thêm.
 - Mỗi thao tác đã ghi được xếp hàng theo tài khoản. Ứng dụng thử gửi lại khi mạng trở lại, khi cửa sổ được mở lại hoặc theo chu kỳ lúc trang hiển thị. RPC kiểm tra revision, ghi dữ liệu trong một giao dịch và lưu mã thao tác đã nhận. Nếu revision đổi, trình duyệt tải bản mới rồi áp dụng lại các thao tác chưa xác nhận.
 - Bản production dùng service worker cho tài nguyên tĩnh đã tải. Khi mất mạng trong một phiên học đã xác minh, thao tác vẫn được ghi vào hàng đợi. Mở lại trang học hoặc tải lại cần kết nối để xác minh phiên với Supabase. Bản nháp bài đang làm vẫn lưu theo tài khoản trong tab.
-- Điểm bắt đầu, quiz nền tảng, bài đã hoàn thành và từ đã học dùng dữ liệu tiến độ hiện có. Nâng cấp này giữ nguyên các biến môi trường và schema Supabase.
+- Điểm bắt đầu, quiz nền tảng, bài đã hoàn thành và từ đã học dùng dữ liệu tiến độ hiện có. Migration tài khoản quản trị bổ sung quyền cấp tài khoản và đọc số bài đã hoàn thành.
 - Đặt lại tiến độ tài khoản xóa lịch sử trên cloud khi đồng bộ. Các thao tác học từ trước lần đặt lại không khôi phục lịch sử đã xóa. Mục tiêu và tùy chọn giao diện được giữ.
 
 ## Đưa lên GitHub và Vercel

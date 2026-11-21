@@ -1,0 +1,8 @@
+project_id = "toeic-550-study"
+
+[auth]
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[functions.create-student]
+verify_jwt = true

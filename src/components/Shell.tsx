@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   AudioLines, BookOpen, BookOpenText, ChartNoAxesColumnIncreasing, ClipboardCheck,
-  Clock3, Flame, GraduationCap, Headphones, House, Languages, ListChecks, Menu, Moon, Route, Settings2, Sprout, Sun, Target, Volume2, X,
+  Clock3, Flame, GraduationCap, Headphones, House, Languages, ListChecks, Menu, Moon, Route, Settings2, Sprout, Sun, Target, UsersRound, Volume2, X,
 } from 'lucide-react'
 import type { Settings } from '../types'
 import { ProgressBar } from './UI'
@@ -21,17 +21,14 @@ const groups = [
   ] },
 ] as const
 
-const accountPages: Record<string, string> = {
-  login: 'Đăng nhập', register: 'Đăng ký', 'forgot-password': 'Quên mật khẩu', 'reset-password': 'Đặt lại mật khẩu', account: 'Tài khoản',
-}
-
-export function Shell({ route, settings, xp, streak, storageIssue, onTheme, account, children }: {
-  route: string; settings: Settings; xp: number; streak: number; storageIssue: boolean; onTheme: () => void; account: ReactNode; children: ReactNode
+export function Shell({ route, settings, xp, streak, storageIssue, isAdmin, onTheme, account, children }: {
+  route: string; settings: Settings; xp: number; streak: number; storageIssue: boolean; isAdmin: boolean; onTheme: () => void; account: ReactNode; children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const page = route.split('/')[0]
   const current = page === 'parts' ? Number(route.split('/')[1]) <= 4 ? 'listening' : 'reading' : ['level', 'onboarding'].includes(page) ? 'roadmap' : page
-  const label = groups.flatMap(group => [...group.items]).find(([key]) => key === current)?.[1] ?? accountPages[page] ?? 'Phiên luyện tập'
+  const accountLabel = page === 'account' ? 'Tài khoản' : page === 'admin' && isAdmin ? 'Quản lý học viên' : undefined
+  const label = groups.flatMap(group => [...group.items]).find(([key]) => key === current)?.[1] ?? accountLabel ?? 'Phiên luyện tập'
   const level = Math.floor(xp / 100) + 1
   useEffect(() => {
     if (!open) return
@@ -54,6 +51,8 @@ export function Shell({ route, settings, xp, streak, storageIssue, onTheme, acco
             <a className={current === key ? 'active' : ''} aria-current={current === key ? 'page' : undefined} href={`#${key}`} key={key} onClick={() => setOpen(false)}><Icon size={17} strokeWidth={1.9} />{title}</a>,
           )}
         </div>)}
+        {isAdmin && <div className="nav-group"><p>Admin</p><a className={page === 'admin' ? 'active' : ''} aria-current={page === 'admin' ? 'page' : undefined}
+          href="#admin/users" onClick={() => setOpen(false)}><UsersRound size={17} strokeWidth={1.9} />Quản lý học viên</a></div>}
       </nav>
       <div className="sidebar-foot">
         <div className="level-heading"><span><Flame size={15} /> Cấp {level}</span><strong>{xp} XP</strong></div>
