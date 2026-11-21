@@ -1,0 +1,255 @@
+.study-card {
+  min-width: 0;
+}
+
+.study-card + .study-card {
+  margin-top: 18px;
+}
+
+.study-grid > .study-card {
+  margin-top: 0;
+}
+
+.study-card-overview,
+.study-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.study-card-overview {
+  margin-bottom: 14px;
+}
+
+.study-card > h2 {
+  margin: 0 0 6px;
+}
+
+.study-card-subtitle {
+  margin: 0;
+  font-weight: 600;
+}
+
+.study-card > .muted {
+  margin: 8px 0 16px;
+}
+
+.study-card-footer {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.study-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.study-guide-item {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.study-guide-item .icon-tile {
+  flex-shrink: 0;
+}
+
+.study-guide-item h3 {
+  margin: 0 0 4px;
+  font-size: .9375rem;
+}
+
+.study-guide-item p {
+  margin: 0;
+  font-size: .875rem;
+  overflow-wrap: anywhere;
+}
+
+.study-topic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.study-topic-list .button {
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: .875rem;
+}
+
+.study-launch {
+  margin-top: 18px;
+}
+
+.study-stage-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.study-status-done {
+  background: var(--green-soft, var(--blue-soft));
+  color: var(--green, var(--blue));
+}
+
+.study-activity {
+  margin-top: 14px;
+}
+
+.study-activity > li {
+  justify-content: flex-start;
+}
+
+.study-activity > li .text-link {
+  white-space: normal;
+}
+
+.study-plan-list,
+.study-test-parts {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.study-plan-list li {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.study-plan-list li:last-child {
+  border-bottom: 0;
+}
+
+.study-plan-today {
+  border-radius: 10px;
+  background: var(--blue-soft);
+}
+
+.study-plan-date,
+.study-plan-task {
+  display: grid;
+  gap: 3px;
+}
+
+.study-plan-date time,
+.study-plan-task small {
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+.study-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.study-plan-check,
+.study-choice-list label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .875rem;
+  cursor: pointer;
+}
+
+.study-plan-check {
+  min-height: 36px;
+}
+
+.study-plan-check input,
+.study-choice-list input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.study-choice-list {
+  min-width: 0;
+  padding: 0;
+  margin: 0 0 14px;
+  border: 0;
+}
+
+.study-choice-list legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: .9375rem;
+  font-weight: 650;
+}
+
+.study-choice-list > div,
+.study-test-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.study-choice-list label,
+.study-test-meta > span {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.study-choice-list label:has(:checked) {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.study-choice-list label > span,
+.study-test-meta > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.study-test-meta > span {
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 650;
+}
+
+.study-test-parts > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.study-test-parts > li strong {
+  flex-shrink: 0;
+}
+
+@media (max-width: 680px) {
+  .study-plan-list li {
+    grid-template-columns: 74px minmax(0, 1fr);
+  }
+
+  .study-plan-actions {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 540px) {
+  .study-guide-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
