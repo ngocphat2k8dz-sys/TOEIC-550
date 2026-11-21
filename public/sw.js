@@ -1,4 +1,4 @@
-const cacheName = 'toeic-static-v1'
+const cacheName = 'toeic-static-v2'
 const root = new URL('./', self.location.href)
 const appShell = root.href
 const publicAssets = ['favicon.svg', 'images/study-hero.webp']

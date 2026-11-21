@@ -3,20 +3,21 @@ import {
   Headphones, Play, Target, TrendingUp,
 } from 'lucide-react'
 import { EmptyState, PageIntro, ProgressBar } from '../components/UI'
-import { stages, studyPlan } from '../data/course'
-import { compactDate, dayKey, durationText, getStats, weekDays, type TopicBreakdown } from '../progress'
-import type { ProgressData } from '../types'
+import { studyPlan } from '../data/course'
+import { learningPath, recommend } from '../data/path'
+import { accuracy, compactDate, dayKey, durationText, getStats, weekDays, type TopicBreakdown } from '../progress'
+import type { ProgressData, StudyTrack } from '../types'
+import { Onboarding } from './beginner/Onboarding'
 
 export function topicLabel(topic: TopicBreakdown) {
-  return topic.topic === `Part ${topic.part}` || topic.topic.startsWith('Vocabulary –') || topic.topic.startsWith('Grammar –')
+  return topic.track || topic.topic === `Part ${topic.part}` || topic.topic.startsWith('Vocabulary –') || topic.topic.startsWith('Grammar –')
     ? topic.topic : `Part ${topic.part} · ${topic.topic}`
 }
 
-export function Dashboard({ progress, stats, onPlan }: {
-  progress: ProgressData; stats: ReturnType<typeof getStats>; onPlan: (key: string, checked: boolean) => void
+export function Dashboard({ progress, stats, onPlan, onChoose }: {
+  progress: ProgressData; stats: ReturnType<typeof getStats>; onPlan: (key: string, checked: boolean) => void; onChoose: (track: StudyTrack) => void
 }) {
-  const allLessons = stages.flatMap(stage => stage.lessons)
-  const next = allLessons.find(lesson => !progress.completed.includes(lesson.id))
+  const { active, next } = recommend(progress)
   const goal = progress.settings.dailyGoal
   const target = progress.settings.target
   const goalPercent = Math.min(100, Math.floor(stats.todaySeconds / (goal * 60) * 100))
@@ -33,19 +34,32 @@ export function Dashboard({ progress, stats, onPlan }: {
   ]
   const dateLabel = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
   return <>
-    <PageIntro title="Tổng quan học tập" description="Theo dõi tiến độ và tiếp tục lộ trình Listening & Reading của bạn."
+    <PageIntro title="Tổng quan học tập" description="Tiếp tục từ bài phù hợp với bạn và theo dõi tiến độ từng giai đoạn."
       action={<span className="date-chip"><CalendarDays size={16} />{dateLabel}</span>} />
-    <section className="hero" aria-labelledby="hero-title">
+    {progress.settings.studyTrack ? <section className="hero" aria-labelledby="hero-title">
       <div className="hero-art" aria-hidden="true"><img src={`${import.meta.env.BASE_URL}images/study-hero.webp`} alt="" /></div>
       <div className="hero-copy">
-        <span className="hero-badge"><Target size={15} /> Mục tiêu của bạn</span>
-        <h2 id="hero-title">Chinh phục TOEIC {target}+</h2>
-        <p>{next ? <>Bài tiếp theo · <strong>{next.title}</strong></> : 'Bạn đã hoàn thành lộ trình. Hãy làm một bài thi thử để duy trì kết quả.'}</p>
+        <span className="hero-badge"><Target size={15} /> Bạn đang ở · {active.title}</span>
+        <h2 id="hero-title">{next?.title ?? 'Ôn tập và giữ phong độ'}</h2>
+        <p>{next ? <>Hôm nay học bài này theo gợi ý lộ trình. Mục tiêu TOEIC {target}+.</> : 'Bạn đã hoàn thành giai đoạn 550+. Có thể làm thêm một bài thi thử.'}</p>
         <div className="hero-actions">
-          <a className="button hero-primary" href={`#${next?.route ?? 'mock-test'}`}><Play size={15} fill="currentColor" />{progress.completed.length ? 'Tiếp tục học' : 'Bắt đầu học'}</a>
+          <a className="button hero-primary" href={`#${next?.route ?? 'mock-test'}`}><Play size={15} fill="currentColor" />Học tiếp</a>
           <a className="button hero-secondary" href="#roadmap">Xem lộ trình</a>
         </div>
       </div>
+    </section> : <Onboarding onChoose={onChoose} />}
+
+    <section className="panel content-panel dashboard-path" aria-labelledby="dashboard-path-heading">
+      <div className="section-heading"><div><h2 id="dashboard-path-heading">Tiến độ lộ trình</h2><p>Từ mất gốc đến TOEIC 550+</p></div>
+        {progress.settings.studyTrack && <a className="text-link" href="#onboarding">Đổi điểm bắt đầu</a>}
+      </div>
+      <div className="path-progress-grid">{learningPath.map(stage => {
+        const completed = stage.lessons.filter(lesson => progress.completed.includes(lesson.id)).length
+        return <a className={'path-progress-item' + (progress.settings.studyTrack && stage.id === active.id ? ' current' : '')} key={stage.id} href={`#roadmap/${stage.id}`}>
+          <strong>{stage.title}</strong><span>{completed}/{stage.lessons.length} bài</span>
+          <ProgressBar label={'Tiến độ ' + stage.title} value={accuracy(completed, stage.lessons.length)} />
+        </a>
+      })}</div>
     </section>
 
     <div className="metric-grid">
@@ -81,7 +95,9 @@ export function Dashboard({ progress, stats, onPlan }: {
       <section className="panel dash-panel" aria-labelledby="next-title">
         <div className="section-heading"><div><h2 id="next-title">Nên học tiếp</h2><p>{stats.weak.length ? 'Các chủ đề có nhiều câu sai nhất' : 'Theo lộ trình và kế hoạch hôm nay'}</p></div><span className="icon-tile purple"><TrendingUp size={19} /></span></div>
         {stats.weak.length ? <ul className="activity-list">{stats.weak.slice(0, 3).map(topic => <li key={topic.key}><span className="icon-tile orange"><Target size={17} /></span><div><strong>{topicLabel(topic)}</strong><small>{topic.wrong} câu sai · {topic.rate}% đúng</small></div><a className="text-link" href={`#weakness/${encodeURIComponent(topic.key)}`}>Luyện</a></li>)}</ul>
-          : <TodayTask onPlan={onPlan} progress={progress} />}
+          : !progress.settings.studyTrack ? <a className="text-link" href="#onboarding">Chọn điểm bắt đầu</a>
+            : next && (active.id === 'starter' || active.id === 'foundation') ? <a className="text-link" href={`#${next.route}`}>{next.title}</a>
+              : <TodayTask onPlan={onPlan} progress={progress} />}
       </section>
     </div>
   </>

@@ -1,6 +1,6 @@
 import { parts, skillOf } from './data/course'
 import { bankIds, questionById } from './data/questions'
-import type { AnswerRecord, Part, ProgressData, Question, StudySession } from './types'
+import type { AnswerRecord, LearningTrack, Part, ProgressData, Question, StudySession } from './types'
 
 export const storageKey = 'toeic-550-study-progress-v1'
 export const defaultProgress: ProgressData = {
@@ -113,21 +113,22 @@ export interface TopicBreakdown extends Breakdown {
   key: string
   wrong: number
   questionIds: string[]
+  track?: LearningTrack
 }
 
 export function groupTopics(records: AnswerRecord[]): TopicBreakdown[] {
-  const groups = new Map<string, { topic: string; part: Part; records: AnswerRecord[] }>()
+  const groups = new Map<string, { topic: string; part: Part; track?: LearningTrack; records: AnswerRecord[] }>()
   for (const record of records) {
     const question = questionById.get(record.questionId)
     if (!question) continue
     const key = `${question.part}:${question.topic}`
-    const group = groups.get(key) ?? { topic: question.topic, part: question.part, records: [] }
+    const group = groups.get(key) ?? { topic: question.topic, part: question.part, track: question.track, records: [] }
     group.records.push(record)
     groups.set(key, group)
   }
-  return [...groups.entries()].map(([key, { topic, part, records: attempts }]) => {
+  return [...groups.entries()].map(([key, { topic, part, track, records: attempts }]) => {
     const result = summarize(attempts)
-    return { ...result, key, topic, part, wrong: result.total - result.correct, questionIds: [...new Set(attempts.filter(attempt => !attempt.correct).map(attempt => attempt.questionId))] }
+    return { ...result, key, topic, part, track, wrong: result.total - result.correct, questionIds: [...new Set(attempts.filter(attempt => !attempt.correct).map(attempt => attempt.questionId))] }
   })
 }
 

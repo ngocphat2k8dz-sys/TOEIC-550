@@ -1,5 +1,7 @@
 import { questionById } from '../data/questions'
 import { vocabulary } from '../data/vocabulary'
+import { beginnerWords } from '../data/beginnerVocabulary'
+import { ipaCourse } from '../data/ipaCourse'
 import { accuracy, addAnswers, addSession, attemptId, defaultProgress, getStats, normalizeProgress, scoreBySkill } from '../progress'
 import type { AnswerRecord, ProgressData, Settings, StudySession, WordStatus } from '../types'
 
@@ -87,6 +89,11 @@ export function applyLearning(state: LearningState, { action, stamp }: PendingAc
     if (progress.sessions.some(entry => entry.id === session.id)) return state
     const lessonIds = lessonId ? [lessonId] : []
     if (lessonId === 'vocab-quiz-Office') lessonIds.push('vocab-office')
+    const ipaLesson = ipaCourse.find(lesson => lesson.id === lessonId)
+    if (ipaLesson && ipaCourse.filter(lesson => lesson.group === ipaLesson.group)
+      .every(lesson => lesson.id === lessonId || progress.completed.includes(lesson.id))) {
+      lessonIds.push('ipa-' + ipaLesson.group)
+    }
     const exam = session.mode === 'mini' || session.mode === 'mock'
     const scores = exam ? scoreBySkill(records) : undefined
     if (session.mode === 'mock' && (scores?.totalScore ?? 0) >= progress.settings.target) lessonIds.push('mock-target')
@@ -103,7 +110,9 @@ export function applyLearning(state: LearningState, { action, stamp }: PendingAc
     if (progress.sessions.some(entry => entry.id === session.id)) return state
     const statuses = { ...progress.vocabulary, [id]: status }
     const newWord = status === 'known' && !progress.earnedWords.includes(id)
-    const learned = topic === 'Office' && vocabulary.filter(word => word.topic === topic).every(word => statuses[word.id] === 'known')
+    const lessonIds = []
+    if (topic === 'Office' && vocabulary.filter(word => word.topic === topic).every(word => statuses[word.id] === 'known')) lessonIds.push('vocab-office')
+    if (id.startsWith('basic-word-') && beginnerWords.every(word => statuses[word.id] === 'known')) lessonIds.push('basic-vocab')
     const reviews = { count: (progress.wordReviews[id]?.count ?? Number(id in progress.vocabulary)) + 1, at: session.at }
     return {
       ...state,
@@ -111,7 +120,7 @@ export function applyLearning(state: LearningState, { action, stamp }: PendingAc
         ...progress, vocabulary: statuses,
         wordReviews: { ...progress.wordReviews, [id]: reviews },
         earnedWords: newWord ? [...progress.earnedWords, id] : progress.earnedWords,
-      }, session, learned ? ['vocab-office'] : [], newWord ? 2 : 0),
+      }, session, lessonIds, newWord ? 2 : 0),
     }
   }
   if (action.type === 'plan') return {

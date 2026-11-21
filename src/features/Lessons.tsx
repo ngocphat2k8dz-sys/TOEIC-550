@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
 import {
   AudioLines, BookOpen, Check, CheckCircle2, Circle, GraduationCap,
-  Lightbulb, ListChecks, RotateCcw, Volume2,
+  Lightbulb, ListChecks, RotateCcw,
 } from 'lucide-react'
+import { Pronounce } from '../components/Pronounce'
 import { grammarLessons } from '../data/grammar'
 import { vocabulary, vocabularyQuestions, vocabularyTopics } from '../data/vocabulary'
 import type { Question, WordStatus } from '../types'
@@ -37,7 +38,6 @@ function VocabularyDeck({ statuses, topic, onMark, onPractice }: VocabularyProps
   const [flipped, setFlipped] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const started = useRef(Date.now())
-  const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window
 
   const topicWords = activeTopic ? vocabulary.filter(word => word.topic === activeTopic) : vocabulary
   const words = topicWords.filter(word => filter === 'all' || statuses[word.id] === filter)
@@ -68,17 +68,6 @@ function VocabularyDeck({ statuses, topic, onMark, onPractice }: VocabularyProps
     onMark(word.id, status, word.topic, seconds)
     setAnnouncement(`${word.word} · ${status === 'known' ? 'đã nhớ' : 'đã thêm vào danh sách ôn lại'}`)
     showWord(words[(wordIndex + 1) % words.length]?.id)
-  }
-
-  function pronounce() {
-    if (!canSpeak || !word) return
-    const utterance = new SpeechSynthesisUtterance(word.word)
-    utterance.lang = 'en-US'
-    utterance.rate = 0.85
-    const englishVoice = speechSynthesis.getVoices().find(voice => voice.lang.toLowerCase() === 'en-us')
-    if (englishVoice) utterance.voice = englishVoice
-    speechSynthesis.cancel()
-    speechSynthesis.speak(utterance)
   }
 
   return (
@@ -133,7 +122,7 @@ function VocabularyDeck({ statuses, topic, onMark, onPractice }: VocabularyProps
                       <span className="lesson-flashcard-topic">{word.topic}</span>
                       {statuses[word.id] && <span className="lesson-flashcard-status">{statuses[word.id] === 'known' ? 'Đã nhớ' : 'Cần ôn'}</span>}
                     </div>
-                    {canSpeak && <button className="lesson-icon-button" type="button" aria-label={`Phát âm ${word.word}`} onClick={pronounce}><Volume2 size={21} aria-hidden="true" /></button>}
+                    <Pronounce key={word.id} text={word.word} audioId={word.id} label={'Phát âm ' + word.word} />
                   </div>
                   <button type="button" className="lesson-flashcard-content" aria-pressed={flipped} onClick={() => setFlipped(value => !value)}>
                     <span className="lesson-flashcard-word" lang="en">{word.word}</span>
@@ -146,7 +135,7 @@ function VocabularyDeck({ statuses, topic, onMark, onPractice }: VocabularyProps
 
                 {flipped && (
                   <dl className="lesson-word-details">
-                    <div><dt>Ví dụ</dt><dd lang="en">{word.example}</dd></div>
+                    <div><dt>Ví dụ</dt><dd className="learning-sentence"><span lang="en">{word.example}</span><Pronounce compact key={word.id} text={word.example} audioId={word.id + '-sentence'} /></dd></div>
                     <div><dt>Cụm từ thường gặp</dt><dd lang="en">{word.collocation}</dd></div>
                     {word.synonym && <div><dt>Từ đồng nghĩa</dt><dd lang="en">{word.synonym}</dd></div>}
                   </dl>

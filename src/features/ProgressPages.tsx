@@ -3,9 +3,10 @@ import { BookOpen, ChartNoAxesColumnIncreasing, Check, Flame, Moon, RotateCcw, S
 import { AnswerExplanation, optionText, Passage } from '../components/QuestionContent'
 import { EmptyState, PageIntro, ProgressBar } from '../components/UI'
 import { guideFor, parts } from '../data/course'
+import { questionGroup } from '../data/beginnerQuestion'
 import { questionById } from '../data/questions'
 import { compactDate, durationText, getStats } from '../progress'
-import type { Part, ProgressData, Question, Settings, Speed } from '../types'
+import type { ProgressData, Question, Settings, Speed } from '../types'
 import { topicLabel, WeekChart } from './Dashboard'
 
 type Stats = ReturnType<typeof getStats>
@@ -64,7 +65,7 @@ export function WeaknessPage({ stats, selected, onStart }: { stats: Stats; selec
 export function MistakesPage({ progress, onStart, onUnderstand }: {
   progress: ProgressData; onStart: Start; onUnderstand: (id: string, checked: boolean) => void
 }) {
-  const [part, setPart] = useState<Part | ''>('')
+  const [part, setPart] = useState('')
   const [topic, setTopic] = useState('')
   const [openOnly, setOpenOnly] = useState(false)
   const ids = new Set<string>()
@@ -74,20 +75,23 @@ export function MistakesPage({ progress, onStart, onUnderstand }: {
     ids.add(question.id)
     return [{ question, record }]
   })
-  const partMatches = mistakes.filter(({ question }) => !part || question.part === part)
+  const partMatches = mistakes.filter(({ question }) => !part || (question.track ?? String(question.part)) === part)
   const options = [...new Set(partMatches.map(({ question }) => question.topic))].sort()
   const filtered = partMatches.filter(({ question }) => (!topic || topic === question.topic) && (!openOnly || !progress.understood[question.id]))
   return <>
     <PageIntro title="Sổ câu sai" description="Xem lại lựa chọn, đọc giải thích hoặc thử làm lại các câu đã sai."
       action={filtered.length > 0 && <button className="button primary" onClick={() => onStart(filtered.map(item => item.question), 'Làm lại câu sai')}><RotateCcw size={17} /> Làm lại câu đã lọc</button>} />
     <div className="panel filters">
-      <label>Part<select value={part} onChange={event => { setPart(event.target.value ? Number(event.target.value) as Part : ''); setTopic('') }}><option value="">Tất cả Part</option>{parts.map(item => <option key={item} value={item}>Part {item}</option>)}</select></label>
+      <label>Part hoặc nhóm học<select value={part} onChange={event => { setPart(event.target.value); setTopic('') }}>
+        <option value="">Tất cả nhóm</option><option value="foundation">Tiếng Anh nền tảng</option><option value="ipa">Phát âm IPA</option><option value="beginner-listening">Nghe từ đầu</option>
+        {parts.map(item => <option key={item} value={item}>Part {item}</option>)}
+      </select></label>
       <label>Chủ đề<select value={topic} onChange={event => setTopic(event.target.value)}><option value="">Tất cả chủ đề</option>{options.map(item => <option key={item}>{item}</option>)}</select></label>
       <label className="checkbox-label"><input type="checkbox" checked={openOnly} onChange={event => setOpenOnly(event.target.checked)} /> Chỉ câu chưa hiểu</label>
     </div>
     {!filtered.length && <div className="panel content-panel"><EmptyState title={mistakes.length ? 'Không có câu sai phù hợp với bộ lọc' : 'Sổ câu sai đang trống'}>{!mistakes.length && <a href="#roadmap" className="text-link">Bắt đầu một bài luyện</a>}</EmptyState></div>}
     <div className="mistake-list">{filtered.map(({ question, record }) => <article className="panel content-panel mistake-card" key={question.id}>
-      <div className="section-heading"><div><div className="mistake-meta"><span className="tag">Part {question.part}</span><span>{question.topic}</span><span>{compactDate(record.at)}</span></div><h2>{question.prompt}</h2></div>
+      <div className="section-heading"><div><div className="mistake-meta"><span className="tag">{questionGroup(question)}</span><span>{question.topic}</span><span>{compactDate(record.at)}</span></div><h2>{question.prompt}</h2></div>
         <label className="checkbox-label"><input type="checkbox" checked={Boolean(progress.understood[question.id])} onChange={event => onUnderstand(question.id, event.target.checked)} /> Đã hiểu</label>
       </div>
       <p className="mistake-choice"><b>Bạn chọn</b> · {record.choice === null ? 'Bỏ trống' : optionText(question, record.choice)}<br /><b>Đáp án đúng</b> · {optionText(question, question.answer)}</p>

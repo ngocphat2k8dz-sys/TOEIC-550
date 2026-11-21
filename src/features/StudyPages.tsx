@@ -4,7 +4,8 @@ import {
   Headphones, KeyRound, Lightbulb, Play, Target, TriangleAlert,
 } from 'lucide-react'
 import { PageIntro, ProgressBar } from '../components/UI'
-import { guideFor, guides, lessonForPart, parts, skillOf, stages, studyPlan, type CourseLesson } from '../data/course'
+import { guideFor, guides, lessonForPart, parts, skillOf, studyPlan, type CourseLesson } from '../data/course'
+import { attemptedLesson, learningPath } from '../data/path'
 import { grammarLessons } from '../data/grammar'
 import { bank, createMini, createMock, mockDistribution } from '../data/questions'
 import { vocabulary } from '../data/vocabulary'
@@ -121,6 +122,7 @@ export function PartPage({ part, topic, onStart }: {
 }
 
 function hasStartedLesson(lesson: CourseLesson, progress: ProgressData, attempted: Set<string>) {
+  if (attemptedLesson(lesson.id, attempted)) return true
   const [section, target, topic] = lesson.route.split('/')
   if (section === 'parts') {
     return bank.some(question => String(question.part) === target && (!topic || question.topic === decodeURIComponent(topic)) && attempted.has(question.id))
@@ -131,22 +133,31 @@ function hasStartedLesson(lesson: CourseLesson, progress: ProgressData, attempte
   if (section === 'vocabulary') {
     return vocabulary.some(word => word.topic === decodeURIComponent(target) && word.id in progress.vocabulary)
   }
+  if (section === 'beginner-vocabulary') {
+    return Object.keys(progress.vocabulary).some(id => id.startsWith('basic-word-'))
+  }
   return lesson.id === 'mock-target' && progress.sessions.some(session => session.mode === 'mock')
 }
 
-export function RoadmapPage({ progress }: { progress: ProgressData }) {
+export function RoadmapPage({ progress, selected }: { progress: ProgressData; selected?: string }) {
   const attempted = new Set(progress.answers.filter(record => record.choice !== null).map(record => record.questionId))
   const completed = new Set(progress.completed)
-  const totalLessons = stages.flatMap(stage => stage.lessons).length
-  const finishedLessons = stages.flatMap(stage => stage.lessons.filter(lesson => completed.has(lesson.id))).length
+  const totalLessons = learningPath.flatMap(stage => stage.lessons).length
+  const finishedLessons = learningPath.flatMap(stage => stage.lessons.filter(lesson => completed.has(lesson.id))).length
+  const active = learningPath.find(stage => stage.id === selected)
   return <>
-    <PageIntro title={`Lộ trình ${progress.settings.target}+`} description="Học từ nền tảng, làm quen từng dạng bài, rồi kiểm tra kết quả bằng đề rút gọn." />
+    <PageIntro title="Lộ trình học" description="Các bài được xếp theo thứ tự gợi ý. Bạn có thể mở giai đoạn phù hợp với mình."
+      action={<a className="button secondary" href="#onboarding">Chọn điểm bắt đầu</a>} />
+    <nav className="path-tabs" aria-label="Chọn giai đoạn lộ trình">
+      <a className={`button ${!active ? 'primary' : 'secondary'}`} href="#roadmap">Tất cả giai đoạn</a>
+      {learningPath.map(stage => <a key={stage.id} className={`button ${stage === active ? 'primary' : 'secondary'}`} href={`#roadmap/${stage.id}`}>{stage.title}</a>)}
+    </nav>
     <section className="panel content-panel study-card" aria-labelledby="roadmap-progress">
       <div className="section-heading"><div><h2 id="roadmap-progress">Tiến độ lộ trình</h2><p>{finishedLessons}/{totalLessons} bài hoàn thành</p></div><span className="icon-tile blue"><Target size={20} aria-hidden="true" /></span></div>
       <ProgressBar label="Tiến độ lộ trình" value={accuracy(finishedLessons, totalLessons)} />
     </section>
-    {stages.map((stage, index) => {
-      const title = index === stages.length - 1 ? `Ổn định mức ${progress.settings.target}+` : stage.title
+    {(active ? [active] : learningPath).map(stage => {
+      const title = stage.title
       const rows = stage.lessons.map(lesson => {
         const done = completed.has(lesson.id)
         const started = !done && hasStartedLesson(lesson, progress, attempted)
@@ -155,9 +166,9 @@ export function RoadmapPage({ progress }: { progress: ProgressData }) {
       const doneCount = rows.filter(row => row.done).length
       const stageDone = doneCount === rows.length
       const stageStarted = doneCount > 0 || rows.some(row => row.started)
-      return <section className="panel content-panel study-card" key={stage.title} aria-labelledby={`stage-${index}`}>
+      return <section className="panel content-panel study-card" key={stage.id} aria-labelledby={`stage-${stage.id}`}>
         <div className="section-heading">
-          <div><p>Giai đoạn {index + 1}</p><h2 id={`stage-${index}`}>{title}</h2><p>{stage.goal}</p></div>
+          <div><h2 id={`stage-${stage.id}`}>{title}</h2><p>{stage.goal}</p></div>
           <span className={`tag ${stageDone ? 'study-status-done' : ''}`}>{stageDone ? 'Hoàn thành' : stageStarted ? 'Đang học' : 'Chưa học'}</span>
         </div>
         <div className="study-stage-progress"><ProgressBar label={`Tiến độ ${title}`} value={accuracy(doneCount, rows.length)} color={stageDone ? 'green' : 'blue'} /><small className="muted">{doneCount}/{rows.length} bài</small></div>

@@ -4,6 +4,9 @@ import { ListeningPlayer } from '../components/ListeningPlayer'
 import { AnswerExplanation, optionLetter, optionText, Passage } from '../components/QuestionContent'
 import { EmptyState, PageIntro, ProgressBar } from '../components/UI'
 import { guideFor } from '../data/course'
+import { questionGroup } from '../data/beginnerQuestion'
+import { questionById } from '../data/questions'
+import { ipaCourse } from '../data/ipaCourse'
 import { accuracy, byPart, clockText, durationText, recordAnswer, scoreBySkill, weakTopics } from '../progress'
 import { getQuizDraft, saveQuizDraft, type QuizResult } from '../quizDraft'
 import type { AnswerRecord, QuizConfig, Speed } from '../types'
@@ -76,6 +79,7 @@ export function Quiz({ config, speed, ownerId, onAnswer, onFinish, onRestart }: 
   if (!question) return <EmptyState title="Chưa có câu hỏi cho phiên này"><a className="button secondary" href={`#${config.returnTo}`}>Quay về</a></EmptyState>
 
   const examLabel = config.mode === 'mock' ? 'Thi thử TOEIC' : config.mode === 'mini' ? 'Mini Test' : 'Phiên luyện tập'
+  const finishLabel = config.lessonId?.startsWith('ipa-course-') ? 'Hoàn thành bài' : 'Xem kết quả'
   return <div className="quiz-page" ref={top}>
     <PageIntro eyebrow={examLabel} title={config.title} description={exam ? 'Chọn đáp án cho từng câu, rồi nộp bài để xem kết quả và giải thích.' : 'Kiểm tra từng câu để xem lời giải tiếng Việt ngay sau khi trả lời.'}
       action={<a className="button secondary" href={`#${config.returnTo}`}>Thoát bài</a>} />
@@ -83,7 +87,7 @@ export function Quiz({ config, speed, ownerId, onAnswer, onFinish, onRestart }: 
       <div>
         <section className="panel quiz-card" aria-labelledby="question-heading">
           <div className="quiz-top">
-            <div><span className="tag">Part {question.part}</span><span className="muted">{question.topic}</span></div>
+            <div><span className="tag">{questionGroup(question)}</span><span className="muted">{question.topic}</span></div>
             <div><span className="muted">Câu {index + 1}/{total}</span><span className={`quiz-time ${timeLimit && timeLimit - elapsed < 60 ? 'urgent' : ''}`} aria-label={timeLimit ? 'Thời gian còn lại' : 'Thời gian đã làm'}><Clock3 size={16} /> {clockText(timeLimit ? timeLimit - elapsed : elapsed)}</span></div>
           </div>
           <ProgressBar label={exam ? 'Câu đã trả lời' : 'Câu đã kiểm tra'} value={(exam ? answered : Object.keys(graded).length) / total * 100} />
@@ -94,7 +98,7 @@ export function Quiz({ config, speed, ownerId, onAnswer, onFinish, onRestart }: 
           <div className="options" role="group" aria-label="Các phương án">
             {question.options.map((option, optionIndex) => {
               const state = marked && optionIndex === question.answer ? 'is-right' : marked && chosen === optionIndex ? 'is-wrong' : chosen === optionIndex ? 'selected' : ''
-              const visible = question.part > 2 || Boolean(marked) || !question.transcript
+              const visible = Boolean(question.track) || question.part > 2 || Boolean(marked) || !question.transcript
               return <button className={`option ${state}`} key={optionIndex} type="button" aria-pressed={chosen === optionIndex} disabled={Boolean(marked)} onClick={() => setChoices(previous => previous.map((choice, current) => current === index ? optionIndex : choice))}>
                 <span className="option-letter">{optionLetter(optionIndex)}</span><span>{visible ? option : `Phương án ${optionLetter(optionIndex)}`}</span>
                 {state === 'is-right' && <Check size={19} />}{state === 'is-wrong' && <X size={19} />}
@@ -106,7 +110,7 @@ export function Quiz({ config, speed, ownerId, onAnswer, onFinish, onRestart }: 
               <button className="button secondary" disabled={index === 0} onClick={() => go(index - 1)}>Câu trước</button>
               {index === total - 1 ? <button className="button primary" onClick={() => setConfirm(true)}><Flag size={16} /> Nộp bài</button> : <button className="button primary" onClick={() => go(index + 1)}>Câu tiếp theo</button>}
             </> : <button className="button primary" disabled={chosen === null} onClick={() => marked ? index === total - 1 ? submit() : go(index + 1) : grade()}>
-              {marked ? index === total - 1 ? 'Xem kết quả' : 'Câu tiếp theo' : 'Kiểm tra đáp án'}
+              {marked ? index === total - 1 ? finishLabel : 'Câu tiếp theo' : 'Kiểm tra đáp án'}
             </button>}
           </div>
           {marked && <AnswerExplanation question={question} choice={marked.choice} />}
@@ -130,18 +134,25 @@ export function Quiz({ config, speed, ownerId, onAnswer, onFinish, onRestart }: 
 
 function ResultView({ config, result, onRestart }: { config: QuizConfig; result: QuizResult; onRestart: () => void }) {
   const [all, setAll] = useState(false)
+  const [reviewSpeed, setReviewSpeed] = useState<Speed>(1)
+  const ipaLesson = ipaCourse.find(lesson => lesson.id === config.lessonId)
+  const ipaNext = ipaLesson && ipaCourse[ipaLesson.number]
   const total = result.records.length
   const correct = result.records.filter(record => record.correct).length
   const wrong = total - correct
   const scores = scoreBySkill(result.records)
   const weak = weakTopics(result.records).slice(0, 3)
-  const partScores = byPart(result.records).filter(part => part.total)
+  const partScores = byPart(result.records.filter(record => !questionById.get(record.questionId)?.track)).filter(part => part.total)
   return <>
-    <PageIntro eyebrow="Kết quả luyện tập" title={config.title} description="Xem điểm theo từng Part và mở các câu cần ôn lại."
-      action={<div className="button-group"><a className="button secondary" href={`#${config.returnTo}`}>Quay về</a><button className="button primary" onClick={onRestart}><RotateCcw size={16} /> Làm lại bài</button></div>} />
+    <PageIntro eyebrow="Kết quả luyện tập" title={config.title} description={partScores.length ? 'Xem điểm theo từng Part và mở các câu cần ôn lại.' : 'Xem câu đã làm và ôn lại từng bước trong phần giải thích.'}
+      action={<div className="button-group">
+        <a className="button secondary" href={`#${config.returnTo}`}>{ipaLesson ? 'Học lại âm' : 'Quay về'}</a>
+        <button className={`button ${ipaNext ? 'secondary' : 'primary'}`} onClick={onRestart}><RotateCcw size={16} /> Làm lại bài</button>
+        {ipaNext && <a className="button primary" href={`#ipa/lesson/${ipaNext.number}`}>Bài tiếp theo</a>}
+      </div>} />
     <section className="panel result-summary">
       <span className="icon-tile green"><Trophy size={24} /></span>
-      <div><h2>{accuracy(correct, total)}% đúng</h2><p>{correct}/{total} câu trả lời chính xác</p></div>
+      <div><h2>{accuracy(correct, total)}% đúng</h2><p>{correct}/{total} câu trả lời chính xác{ipaLesson && ' · Đã hoàn thành bài'}</p></div>
       <dl><div><dt>Đúng</dt><dd>{correct}</dd></div><div><dt>Sai</dt><dd>{wrong}</dd></div><div><dt>Thời gian</dt><dd>{durationText(result.seconds)}</dd></div></dl>
     </section>
     {config.mode === 'mock' && <section className="panel content-panel score-estimate">
@@ -149,9 +160,9 @@ function ResultView({ config, result, onRestart }: { config: QuizConfig; result:
       <dl><div><dt>Listening</dt><dd>{scores.listeningScore} <small>/ 495</small></dd></div><div><dt>Reading</dt><dd>{scores.readingScore} <small>/ 495</small></dd></div><div><dt>Tổng điểm</dt><dd>{scores.totalScore} <small>/ 990</small></dd></div></dl>
     </section>}
     <div className="dashboard-grid result-grid">
-      <section className="panel content-panel"><div className="section-heading"><div><h2>Tỷ lệ đúng theo Part</h2><p>Kết quả của phiên này</p></div><span className="icon-tile blue"><ClipboardCheck size={19} /></span></div>
+      {partScores.length > 0 && <section className="panel content-panel"><div className="section-heading"><div><h2>Tỷ lệ đúng theo Part</h2><p>Kết quả của phiên này</p></div><span className="icon-tile blue"><ClipboardCheck size={19} /></span></div>
         {partScores.map(part => <div className="breakdown-row" key={part.part}><div><strong>Part {part.part} · {guideFor(part.part).name}</strong><span>{part.correct}/{part.total} · {part.rate}%</span></div><ProgressBar label={`Tỷ lệ đúng Part ${part.part}`} value={part.rate} color={part.part > 4 ? 'purple' : 'blue'} /></div>)}
-      </section>
+      </section>}
       <section className="panel content-panel"><div className="section-heading"><div><h2>Phần nên ôn</h2><p>Chủ đề có nhiều câu sai trong bài này</p></div><span className="icon-tile orange"><Target size={19} /></span></div>
         {weak.length ? <ul className="activity-list">{weak.map(topic => <li key={topic.key}><div><strong>{topicLabel(topic)}</strong><small>{topic.wrong} câu sai</small></div><a className="text-link" href={`#weakness/${encodeURIComponent(topic.key)}`}>Luyện</a></li>)}</ul> : <EmptyState title="Bạn làm đúng tất cả các câu" />}
       </section>
@@ -162,9 +173,10 @@ function ResultView({ config, result, onRestart }: { config: QuizConfig; result:
       {config.questions.map((question, index) => {
         const record = result.records[index]
         return (all || !record.correct) && <details className="result-answer" key={question.id}>
-          <summary><FileText size={17} /> Câu {index + 1} · Part {question.part} <span>{record.correct ? 'Đúng' : record.choice === null ? 'Bỏ trống' : 'Sai'}</span></summary>
+          <summary><FileText size={17} /> Câu {index + 1} · {questionGroup(question)} <span>{record.correct ? 'Đúng' : record.choice === null ? 'Bỏ trống' : 'Sai'}</span></summary>
           <div><h3>{question.prompt}</h3>{question.image && <img className="question-image" src={question.image.src} alt={question.image.alt} />}
             {question.passages?.map(passage => <Passage key={passage.title} passage={passage} highlight={false} />)}
+            {question.track === 'ipa' && question.transcript && <ListeningPlayer transcript={question.transcript} src={question.audio} speed={reviewSpeed} onSpeed={setReviewSpeed} instruction="Nghe lại từ mẫu" />}
             <p className="muted">Bạn chọn {record.choice === null ? '—' : optionText(question, record.choice)}</p><AnswerExplanation question={question} choice={record.choice} /></div>
         </details>
       })}

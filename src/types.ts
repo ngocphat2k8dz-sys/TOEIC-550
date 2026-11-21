@@ -3,6 +3,16 @@ export type Skill = 'Listening' | 'Reading'
 export type Mode = 'practice' | 'mini' | 'mock' | 'review' | 'weakness'
 export type Speed = 0.75 | 1 | 1.25
 export type WordStatus = 'known' | 'review'
+export type StudyTrack = 'starter' | 'foundation' | 'toeic'
+export type LearningTrack = 'foundation' | 'ipa' | 'beginner-listening'
+
+export interface BeginnerExplanation {
+  translation: string
+  words: readonly (readonly [string, string])[]
+  concept: string
+  simple: string
+  example: string
+}
 
 export interface Question {
   id: string
@@ -21,6 +31,8 @@ export interface Question {
   transcript?: string
   image?: { src: string; alt: string }
   audio?: string
+  track?: LearningTrack
+  beginner?: BeginnerExplanation
 }
 
 export interface AnswerRecord {
@@ -48,6 +60,7 @@ export interface Settings {
   speed: Speed
   dailyGoal: number
   target: number
+  studyTrack?: StudyTrack
 }
 
 export interface ProgressData {

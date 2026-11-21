@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import type { AuthError, User } from '@supabase/supabase-js'
+import { flushSync } from 'react-dom'
+import type { AuthChangeEvent, AuthError, Session, User } from '@supabase/supabase-js'
 import { callbackMode, hasAuthFragment, matchesRecovery, supabase } from '../lib/supabase'
+import { continueAfterSignIn, navigate } from '../routing'
 
 const recoveryKey = 'toeic-recovery-account'
 let callbackHandled = false
@@ -16,11 +18,6 @@ function rememberRecovery(user: User | null) {
   } catch {
     // Recovery is still available until reloading the page.
   }
-}
-
-function callbackRoute(route: string) {
-  window.history.replaceState(null, '', `${window.location.pathname}#${route}`)
-  window.dispatchEvent(new HashChangeEvent('hashchange'))
 }
 
 export function authMessage(error: AuthError) {
@@ -50,28 +47,111 @@ export function useAuth() {
   const [notice, setNotice] = useState('')
 
   useEffect(() => {
-    if (!supabase) return
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      const next = session?.user ?? null
-      const recoveryLink = event === 'PASSWORD_RECOVERY' || !callbackHandled && matchesRecovery(session?.access_token)
+    const client = supabase
+    if (!client) return
+    const auth = client.auth
+    let version = 0
+    let trustedToken = ''
+    let trustedUser: User | null = null
+    let expiry: number | undefined
+    let deferred: number | undefined
+    let timeout: number | undefined
+    let live = true
+
+    function accept(event: AuthChangeEvent, session: Session | null, next: User | null) {
+      trustedToken = next && session ? session.access_token : ''
+      trustedUser = next
+      const recoveryLink = Boolean(next && (event === 'PASSWORD_RECOVERY' || !callbackHandled && matchesRecovery(session?.access_token)))
       if (recoveryLink && next) rememberRecovery(next)
-      if (event === 'SIGNED_OUT') rememberRecovery(null)
+      if (event === 'SIGNED_OUT') {
+        rememberRecovery(null)
+        setNotice('')
+      }
       setUser(next)
       setRecovering(Boolean(recoveryLink && next) || rememberedRecovery(next))
       setLoading(false)
-      if (!callbackHandled && (event === 'INITIAL_SESSION' || event === 'PASSWORD_RECOVERY') && (callbackMode || hasAuthFragment)) {
+      if (!callbackHandled && (next || event === 'INITIAL_SESSION' || event === 'PASSWORD_RECOVERY') && (callbackMode || hasAuthFragment)) {
         callbackHandled = true
-        if (recoveryLink && next) callbackRoute('reset-password')
+        if (recoveryLink && next) navigate('reset-password', true)
         else if (callbackMode === 'recovery') {
           setNotice('Liên kết đặt lại mật khẩu đã hết hạn hoặc không hợp lệ. Bạn có thể yêu cầu liên kết mới.')
-          callbackRoute('forgot-password')
+          navigate('forgot-password', true)
+        } else if (next) {
+          setNotice('Bạn đã đăng nhập. Tài khoản đã sẵn sàng.')
+          continueAfterSignIn()
         } else {
-          setNotice(next ? 'Bạn đã đăng nhập. Tài khoản đã sẵn sàng.' : 'Mở liên kết xác nhận trong email rồi thử đăng nhập.')
-          callbackRoute(next ? 'account' : 'login')
+          setNotice('Mở liên kết xác nhận trong email rồi thử đăng nhập.')
+          navigate('login', true)
         }
       }
-    })
-    return () => data.subscription.unsubscribe()
+      window.clearTimeout(expiry)
+      if (next && session?.expires_at) {
+        const remaining = Math.max(0, session.expires_at * 1000 - Date.now())
+        expiry = window.setTimeout(checkStoredSession, remaining)
+      }
+    }
+
+    function verify(event: AuthChangeEvent, session: Session | null) {
+      if (!live) return
+      const check = ++version
+      window.clearTimeout(deferred)
+      window.clearTimeout(timeout)
+      if (!session?.access_token || (session.expires_at && session.expires_at * 1000 <= Date.now())) {
+        accept(event, null, null)
+        return
+      }
+      if (trustedUser && trustedToken === session.access_token) {
+        accept(event, session, event === 'USER_UPDATED' && session.user.id === trustedUser.id ? session.user : trustedUser)
+        return
+      }
+      if (trustedUser?.id !== session.user.id) setLoading(true)
+      function complete(next: User | null) {
+        if (!live || check !== version) return
+        version++
+        window.clearTimeout(timeout)
+        if (!next) setNotice('Chưa xác minh được phiên đăng nhập. Hãy kiểm tra kết nối và đăng nhập lại.')
+        accept(event, session, next)
+      }
+      timeout = window.setTimeout(() => complete(null), 12_000)
+      // Avoid running another auth request synchronously inside the Supabase callback.
+      deferred = window.setTimeout(() => {
+        void auth.getUser(session.access_token).then(({ data, error }) => {
+          complete(!error && data.user?.id === session.user.id ? data.user : null)
+        }).catch(() => complete(null))
+      }, 0)
+    }
+
+    function checkStoredSession() {
+      if (!live) return
+      const check = ++version
+      trustedToken = ''
+      trustedUser = null
+      setLoading(true)
+      void auth.getSession().then(({ data }) => {
+        if (check === version) verify('INITIAL_SESSION', data.session)
+      }).catch(() => {
+        if (check === version) verify('INITIAL_SESSION', null)
+      })
+    }
+
+    const { data } = auth.onAuthStateChange(verify)
+    const hide = (event: PageTransitionEvent) => {
+      if (!event.persisted) return
+      version++
+      flushSync(() => setLoading(true))
+    }
+    const show = (event: PageTransitionEvent) => { if (event.persisted) checkStoredSession() }
+    window.addEventListener('pagehide', hide)
+    window.addEventListener('pageshow', show)
+    return () => {
+      live = false
+      data.subscription.unsubscribe()
+      window.clearTimeout(expiry)
+      window.clearTimeout(deferred)
+      window.clearTimeout(timeout)
+      window.removeEventListener('pagehide', hide)
+      window.removeEventListener('pageshow', show)
+    }
   }, [])
 
   function finishRecovery() {

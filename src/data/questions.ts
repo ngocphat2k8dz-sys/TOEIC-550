@@ -4,9 +4,16 @@ import { grammarQuestions } from './grammar'
 import { listeningQuestions } from './listening'
 import { readingQuestions } from './reading'
 import { vocabularyQuestions } from './vocabulary'
+import { foundationQuestions } from './foundations'
+import { ipaQuestions } from './ipa'
+import { ipaCourseQuestions } from './ipaCourse'
+import { beginnerWordQuestions } from './beginnerVocabulary'
+import { beginnerListeningQuestions } from './beginnerListening'
 
 export const bank = [...listeningQuestions, ...readingQuestions]
-export const questionById = new Map([...bank, ...grammarQuestions, ...vocabularyQuestions].map(question => [question.id, question]))
+export const questionById = new Map([
+  ...bank, ...grammarQuestions, ...vocabularyQuestions, ...foundationQuestions, ...ipaQuestions, ...ipaCourseQuestions, ...beginnerWordQuestions, ...beginnerListeningQuestions,
+].map(question => [question.id, question]))
 export const bankIds = new Set(bank.map(question => question.id))
 
 function shuffle<T>(values: T[]): T[] {

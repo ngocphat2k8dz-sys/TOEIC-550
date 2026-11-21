@@ -1,17 +1,19 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   AudioLines, BookOpen, BookOpenText, ChartNoAxesColumnIncreasing, ClipboardCheck,
-  Clock3, Flame, GraduationCap, House, Languages, ListChecks, Menu, Moon, Route, Settings2, Sun, Target, X,
+  Clock3, Flame, GraduationCap, Headphones, House, Languages, ListChecks, Menu, Moon, Route, Settings2, Sprout, Sun, Target, Volume2, X,
 } from 'lucide-react'
 import type { Settings } from '../types'
 import { ProgressBar } from './UI'
 
 const groups = [
   { title: 'Học tập', items: [
-    ['home', 'Tổng quan', House], ['roadmap', 'Lộ trình 550+', Route], ['listening', 'Listening', AudioLines],
-    ['reading', 'Reading', BookOpen], ['vocabulary', 'Từ vựng', Languages], ['grammar', 'Ngữ pháp', BookOpenText],
+    ['home', 'Tổng quan', House], ['roadmap', 'Lộ trình học', Route], ['foundation', 'Tiếng Anh từ đầu', Sprout],
+    ['ipa', 'IPA và phát âm', Volume2], ['beginner-vocabulary', 'Từ vựng cơ bản', Languages], ['beginner-listening', 'Nghe từ đầu', Headphones],
   ] },
-  { title: 'Luyện tập', items: [
+  { title: 'Luyện TOEIC', items: [
+    ['listening', 'Listening', AudioLines],
+    ['reading', 'Reading', BookOpen], ['vocabulary', 'Từ vựng', Languages], ['grammar', 'Ngữ pháp', BookOpenText],
     ['weakness', 'Luyện điểm yếu', Target], ['mini-test', 'Mini Test', ClipboardCheck], ['mock-test', 'Thi thử', Clock3], ['mistakes', 'Sổ câu sai', ListChecks],
   ] },
   { title: 'Theo dõi', items: [
@@ -28,7 +30,7 @@ export function Shell({ route, settings, xp, streak, storageIssue, onTheme, acco
 }) {
   const [open, setOpen] = useState(false)
   const page = route.split('/')[0]
-  const current = page === 'parts' ? Number(route.split('/')[1]) <= 4 ? 'listening' : 'reading' : page
+  const current = page === 'parts' ? Number(route.split('/')[1]) <= 4 ? 'listening' : 'reading' : ['level', 'onboarding'].includes(page) ? 'roadmap' : page
   const label = groups.flatMap(group => [...group.items]).find(([key]) => key === current)?.[1] ?? accountPages[page] ?? 'Phiên luyện tập'
   const level = Math.floor(xp / 100) + 1
   useEffect(() => {

@@ -352,6 +352,16 @@ mark { background: #ffe67d; color: #302800; padding-inline: 2px; border-radius: 
 .profile-summary dt, .profile-synced { font-size: .875rem; }
 .profile-summary dd { font-weight: 700; }
 .profile-synced { margin-top: 8px; }
+.welcome-topbar { min-height: 72px; padding: 12px clamp(14px, 5vw, 72px); background: var(--panel); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.welcome-main { width: min(1080px, 100%); margin-inline: auto; padding: clamp(15px, 4vw, 46px) clamp(14px, 3vw, 28px) 40px; }
+.welcome-hero { min-height: 275px; }
+.welcome-hero h1 { margin-top: 14px; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 800; line-height: 1.13; letter-spacing: -.055em; }
+.welcome-hero .hero-copy { padding-block: clamp(23px, 4vw, 51px); }
+.welcome-hero .hero-copy p { max-width: 470px; }
+.welcome-features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.welcome-features h2 { margin-top: 12px; font-size: 1.03rem; }
+.welcome-features p { color: var(--muted); font-size: .875rem; margin-top: 4px; }
+@media (max-width: 620px) { .welcome-features { grid-template-columns: minmax(0, 1fr); } .welcome-topbar .button { padding-inline: 8px; } }
 
 @media (min-height: 820px) { .sidebar-foot { position: relative; } .sidebar nav { margin-bottom: 19px; } }
 @media (max-height: 819px) { .sidebar nav { margin-bottom: 15px; } .sidebar .nav-group a { padding-block: 6px; min-height: 34px; } .sidebar nav { gap: 12px; } }

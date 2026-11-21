@@ -3,6 +3,7 @@ import { KeyRound, LogIn, Mail, UserPlus } from 'lucide-react'
 import { EmptyState, PageIntro } from '../../components/UI'
 import { authMessage, authRedirect, type AuthState } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
+import { continueAfterSignIn } from '../../routing'
 
 export type AuthRoute = 'login' | 'register' | 'forgot-password' | 'reset-password'
 
@@ -37,14 +38,14 @@ export function AuthPage({ page, auth }: { page: AuthRoute; auth: AuthState }) {
       if (page === 'login') {
         const result = await supabase.auth.signInWithPassword({ email, password })
         if (result.error) setError(authMessage(result.error))
-        else window.location.hash = 'account'
+        else continueAfterSignIn()
       } else if (registration) {
         const displayName = String(form.get('display-name') ?? '').trim()
         const result = await supabase.auth.signUp({
           email, password, options: { data: { display_name: displayName }, emailRedirectTo: authRedirect('confirm') },
         })
         if (result.error) setError(authMessage(result.error))
-        else if (result.data.session) window.location.hash = 'account'
+        else if (result.data.session) continueAfterSignIn()
         else setSuccess('Nếu email đăng ký hợp lệ, bạn sẽ nhận được liên kết xác nhận. Mở liên kết trước khi đăng nhập.')
       } else if (forgot) {
         const result = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirect('recovery') })
@@ -68,11 +69,11 @@ export function AuthPage({ page, auth }: { page: AuthRoute; auth: AuthState }) {
       <div className="section-heading"><div><h2>Tài khoản TOEIC 550+</h2><p>{description}</p></div><span className="icon-tile blue"><Icon size={20} /></span></div>
       {auth.notice && !error && <p className="account-notice" role="status">{auth.notice}</p>}
       {!auth.configured ? <EmptyState title="Tài khoản chưa khả dụng trên bản này">
-        <p>Cấu hình Supabase để bật đăng nhập và lưu tiến độ lên cloud. Bạn vẫn có thể học ở chế độ khách.</p><a className="button primary" href="#home">Học với tư cách khách</a>
+        <p>Cần cấu hình Supabase để đăng nhập và mở nội dung học.</p><a className="button primary" href="#welcome">Về trang chào mừng</a>
       </EmptyState> : passwordReset && !auth.recovering ? <EmptyState title="Cần liên kết đặt lại mật khẩu">
         <a className="button primary" href="#forgot-password">Yêu cầu liên kết mới</a>
       </EmptyState> : auth.user && !passwordReset ? <EmptyState title="Bạn đang đăng nhập">
-        <a className="button primary" href="#account">Mở hồ sơ</a>
+        <div className="button-group"><a className="button primary" href="#home">Về trang học</a><a className="button secondary" href="#account">Mở hồ sơ</a></div>
       </EmptyState> : <>
         <form className="account-form" onSubmit={event => { event.preventDefault(); void submit(new FormData(event.currentTarget)) }}>
           {registration && <label>Tên hiển thị <input name="display-name" autoComplete="nickname" maxLength={60} /></label>}
@@ -87,7 +88,7 @@ export function AuthPage({ page, auth }: { page: AuthRoute; auth: AuthState }) {
           {page !== 'login' && <a className="text-link" href="#login">Đăng nhập</a>}
           {page !== 'register' && !passwordReset && <a className="text-link" href="#register">Đăng ký</a>}
           {page === 'login' && <a className="text-link" href="#forgot-password">Quên mật khẩu?</a>}
-          <a className="text-link" href="#home">Về tổng quan</a>
+          <a className="text-link" href="#welcome">Về trang chào mừng</a>
         </div>
       </>}
     </section>

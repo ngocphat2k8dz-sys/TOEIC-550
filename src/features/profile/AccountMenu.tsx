@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { ChevronDown, LogIn, LogOut, UserPlus, UserRound } from 'lucide-react'
 import { authMessage } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
+import { clearStudyRoute, navigate } from '../../routing'
 
 export function AccountMenu({ user, displayName, route }: { user: User | null; displayName: string; route: string }) {
   const container = useRef<HTMLDetailsElement>(null)
@@ -29,7 +30,10 @@ export function AccountMenu({ user, displayName, route }: { user: User | null; d
     try {
       const result = await supabase.auth.signOut({ scope: 'local' })
       if (result.error) setError(authMessage(result.error))
-      else window.location.hash = 'home'
+      else {
+        clearStudyRoute()
+        navigate('welcome', true)
+      }
     } catch {
       setError('Không thể đăng xuất lúc này. Vui lòng thử lại.')
     } finally {

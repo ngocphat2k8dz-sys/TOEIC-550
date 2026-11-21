@@ -87,4 +87,4 @@ Nếu **origin** đã tồn tại, xem URL trước bằng **git remote -v** và
 - [ ] Với tài khoản thử, bấm **Quên mật khẩu**, mở thư, nhập mật khẩu mới và thử đăng nhập lại.
 - [ ] Tắt mạng sau khi đã mở app, thực hiện một thao tác, bật mạng và xác nhận phần tiến độ mới xuất hiện trên thiết bị kia.
 
-Build tĩnh có thể mở khi thiếu cấu hình Supabase ở chế độ khách. Việc xác nhận email, đặt lại mật khẩu qua email và đồng bộ trên Vercel cần được kiểm tra trên dự án thật sau các bước trên.
+Bản tĩnh khi thiếu cấu hình Supabase hiển thị trang chào mừng và các trang tài khoản. Các route học yêu cầu một phiên Supabase đã xác minh. Nếu đã áp dụng migration trước đây, tiếp tục dùng schema và các biến môi trường đó.
