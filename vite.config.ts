@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (key && id.includes('/node_modules/@supabase/')) return 'supabase'
+            if (/\/data\/curriculum\/(starter-basics|starter-sentences|foundation-core|foundation-extension)\.ts$/.test(id)) return 'curriculum-material'
           },
         },
       },

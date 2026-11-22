@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { PageIntro, ProgressBar } from '../components/UI'
 import { guideFor, guides, lessonForPart, parts, skillOf, studyPlan, type CourseLesson } from '../data/course'
-import { attemptedLesson, learningPath } from '../data/path'
+import { attemptedLesson, learningPath, recommend } from '../data/path'
 import { grammarLessons } from '../data/grammar'
 import { bank, createMini, createMock, mockDistribution } from '../data/questions'
 import { vocabulary } from '../data/vocabulary'
@@ -145,6 +145,19 @@ export function RoadmapPage({ progress, selected }: { progress: ProgressData; se
   const totalLessons = learningPath.flatMap(stage => stage.lessons).length
   const finishedLessons = learningPath.flatMap(stage => stage.lessons.filter(lesson => completed.has(lesson.id))).length
   const active = learningPath.find(stage => stage.id === selected)
+  const recommended = recommend(progress).next?.id
+
+  function lessonList(lessons: CourseLesson[]) {
+    return <ul className="activity-list study-activity">{lessons.map(lesson => {
+      const done = completed.has(lesson.id)
+      const started = !done && hasStartedLesson(lesson, progress, attempted)
+      const StatusIcon = done ? CircleCheck : started ? Clock3 : Circle
+      return <li key={lesson.id} className={lesson.id === recommended ? 'study-next-lesson' : undefined}>
+        <span className={`icon-tile ${done ? 'green' : 'blue'}`}><StatusIcon size={16} aria-hidden="true" /></span>
+        <div><a className="text-link" href={`#${lesson.route}`}>{lesson.title}</a><small>{done ? 'Hoàn thành' : started ? 'Đang học' : 'Chưa học'}{lesson.id === recommended && ' · Nên học tiếp'}</small></div>
+      </li>
+    })}</ul>
+  }
   return <>
     <PageIntro title="Lộ trình học" description="Các bài được xếp theo thứ tự gợi ý. Bạn có thể mở giai đoạn phù hợp với mình."
       action={<a className="button secondary" href="#onboarding">Chọn điểm bắt đầu</a>} />
@@ -158,29 +171,25 @@ export function RoadmapPage({ progress, selected }: { progress: ProgressData; se
     </section>
     {(active ? [active] : learningPath).map(stage => {
       const title = stage.title
-      const rows = stage.lessons.map(lesson => {
-        const done = completed.has(lesson.id)
-        const started = !done && hasStartedLesson(lesson, progress, attempted)
-        return { lesson, done, started, status: done ? 'Hoàn thành' : started ? 'Đang học' : 'Chưa học' }
-      })
-      const doneCount = rows.filter(row => row.done).length
-      const stageDone = doneCount === rows.length
-      const stageStarted = doneCount > 0 || rows.some(row => row.started)
+      const doneCount = stage.lessons.filter(lesson => completed.has(lesson.id)).length
+      const stageDone = doneCount === stage.lessons.length
+      const stageStarted = doneCount > 0 || stage.lessons.some(lesson => hasStartedLesson(lesson, progress, attempted))
       return <section className="panel content-panel study-card" key={stage.id} aria-labelledby={`stage-${stage.id}`}>
         <div className="section-heading">
           <div><h2 id={`stage-${stage.id}`}>{title}</h2><p>{stage.goal}</p></div>
           <span className={`tag ${stageDone ? 'study-status-done' : ''}`}>{stageDone ? 'Hoàn thành' : stageStarted ? 'Đang học' : 'Chưa học'}</span>
         </div>
-        <div className="study-stage-progress"><ProgressBar label={`Tiến độ ${title}`} value={accuracy(doneCount, rows.length)} color={stageDone ? 'green' : 'blue'} /><small className="muted">{doneCount}/{rows.length} bài</small></div>
-        <ul className="activity-list study-activity">
-          {rows.map(({ lesson, done, started, status }) => {
-            const StatusIcon = done ? CircleCheck : started ? Clock3 : Circle
-            return <li key={lesson.id}>
-              <span className={`icon-tile ${done ? 'green' : 'blue'}`}><StatusIcon size={16} aria-hidden="true" /></span>
-              <div><a className="text-link" href={`#${lesson.route}`}>{lesson.title}</a><small>{status}</small></div>
-            </li>
-          })}
-        </ul>
+        <div className="study-stage-progress"><ProgressBar label={`Tiến độ ${title}`} value={accuracy(doneCount, stage.lessons.length)} color={stageDone ? 'green' : 'blue'} /><small className="muted">{doneCount}/{stage.lessons.length} bài · {accuracy(doneCount, stage.lessons.length)}%</small></div>
+        {stage.resources ? stage.modules.map(group => {
+          const done = group.lessons.filter(lesson => completed.has(lesson.id)).length
+          const percent = accuracy(done, group.lessons.length)
+          return <div className="study-module" key={group.id}>
+            <div className="study-module-heading"><h3>{group.title}</h3><span>{done}/{group.lessons.length} bài · {percent}%</span></div>
+            <ProgressBar label={`Tiến độ ${group.title}`} value={percent} />
+            {lessonList(group.lessons)}
+          </div>
+        }) : lessonList(stage.lessons)}
+        {stage.resources && <details className="study-module study-resources"><summary>{stage.id === 'starter' ? 'Luyện thêm IPA và từ vựng' : 'Luyện thêm nghe và ngữ pháp'}</summary>{lessonList(stage.resources)}</details>}
       </section>
     })}
   </>

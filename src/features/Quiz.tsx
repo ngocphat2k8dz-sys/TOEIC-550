@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, ClipboardCheck, Clock3, FileText, Flag, RotateCcw, Target, Trophy, X } from 'lucide-react'
+import { ArrowRight, Check, ClipboardCheck, Clock3, FileText, Flag, RotateCcw, Target, Trophy, X } from 'lucide-react'
 import { ListeningPlayer } from '../components/ListeningPlayer'
 import { AnswerExplanation, optionLetter, optionText, Passage } from '../components/QuestionContent'
 import { EmptyState, PageIntro, ProgressBar } from '../components/UI'
 import { guideFor } from '../data/course'
 import { questionGroup } from '../data/beginnerQuestion'
 import { questionById } from '../data/questions'
-import { ipaCourse } from '../data/ipaCourse'
+import { studyLessonByCompletion } from '../data/curriculum'
+import { nextPathLesson } from '../data/path'
 import { accuracy, byPart, clockText, durationText, recordAnswer, scoreBySkill, weakTopics } from '../progress'
 import { getQuizDraft, saveQuizDraft, type QuizResult } from '../quizDraft'
 import type { AnswerRecord, QuizConfig, Speed } from '../types'
@@ -79,7 +80,7 @@ export function Quiz({ config, speed, ownerId, onAnswer, onFinish, onRestart }: 
   if (!question) return <EmptyState title="Chưa có câu hỏi cho phiên này"><a className="button secondary" href={`#${config.returnTo}`}>Quay về</a></EmptyState>
 
   const examLabel = config.mode === 'mock' ? 'Thi thử TOEIC' : config.mode === 'mini' ? 'Mini Test' : 'Phiên luyện tập'
-  const finishLabel = config.lessonId?.startsWith('ipa-course-') ? 'Hoàn thành bài' : 'Xem kết quả'
+  const finishLabel = config.lessonId && (studyLessonByCompletion.has(config.lessonId) || config.lessonId.startsWith('ipa-course-')) ? 'Hoàn thành bài' : 'Xem kết quả'
   return <div className="quiz-page" ref={top}>
     <PageIntro eyebrow={examLabel} title={config.title} description={exam ? 'Chọn đáp án cho từng câu, rồi nộp bài để xem kết quả và giải thích.' : 'Kiểm tra từng câu để xem lời giải tiếng Việt ngay sau khi trả lời.'}
       action={<a className="button secondary" href={`#${config.returnTo}`}>Thoát bài</a>} />
@@ -135,8 +136,9 @@ export function Quiz({ config, speed, ownerId, onAnswer, onFinish, onRestart }: 
 function ResultView({ config, result, onRestart }: { config: QuizConfig; result: QuizResult; onRestart: () => void }) {
   const [all, setAll] = useState(false)
   const [reviewSpeed, setReviewSpeed] = useState<Speed>(1)
-  const ipaLesson = ipaCourse.find(lesson => lesson.id === config.lessonId)
-  const ipaNext = ipaLesson && ipaCourse[ipaLesson.number]
+  const ipaLesson = config.lessonId?.startsWith('ipa-course-')
+  const courseLesson = config.lessonId && studyLessonByCompletion.has(config.lessonId)
+  const next = nextPathLesson(config.lessonId)
   const total = result.records.length
   const correct = result.records.filter(record => record.correct).length
   const wrong = total - correct
@@ -146,13 +148,13 @@ function ResultView({ config, result, onRestart }: { config: QuizConfig; result:
   return <>
     <PageIntro eyebrow="Kết quả luyện tập" title={config.title} description={partScores.length ? 'Xem điểm theo từng Part và mở các câu cần ôn lại.' : 'Xem câu đã làm và ôn lại từng bước trong phần giải thích.'}
       action={<div className="button-group">
+        {next && <a className="button primary" href={`#${next.route}`}>{ipaLesson ? 'Bài tiếp theo' : `Tiếp tục · ${next.title}`}<ArrowRight size={17} /></a>}
         <a className="button secondary" href={`#${config.returnTo}`}>{ipaLesson ? 'Học lại âm' : 'Quay về'}</a>
-        <button className={`button ${ipaNext ? 'secondary' : 'primary'}`} onClick={onRestart}><RotateCcw size={16} /> Làm lại bài</button>
-        {ipaNext && <a className="button primary" href={`#ipa/lesson/${ipaNext.number}`}>Bài tiếp theo</a>}
+        <button className={`button ${next ? 'secondary' : 'primary'}`} onClick={onRestart}><RotateCcw size={16} /> Làm lại bài</button>
       </div>} />
     <section className="panel result-summary">
       <span className="icon-tile green"><Trophy size={24} /></span>
-      <div><h2>{accuracy(correct, total)}% đúng</h2><p>{correct}/{total} câu trả lời chính xác{ipaLesson && ' · Đã hoàn thành bài'}</p></div>
+      <div><h2>{accuracy(correct, total)}% đúng</h2><p>{correct}/{total} câu trả lời chính xác{(ipaLesson || courseLesson) && ' · Đã hoàn thành bài'}</p></div>
       <dl><div><dt>Đúng</dt><dd>{correct}</dd></div><div><dt>Sai</dt><dd>{wrong}</dd></div><div><dt>Thời gian</dt><dd>{durationText(result.seconds)}</dd></div></dl>
     </section>
     {config.mode === 'mock' && <section className="panel content-panel score-estimate">
@@ -176,7 +178,7 @@ function ResultView({ config, result, onRestart }: { config: QuizConfig; result:
           <summary><FileText size={17} /> Câu {index + 1} · {questionGroup(question)} <span>{record.correct ? 'Đúng' : record.choice === null ? 'Bỏ trống' : 'Sai'}</span></summary>
           <div><h3>{question.prompt}</h3>{question.image && <img className="question-image" src={question.image.src} alt={question.image.alt} />}
             {question.passages?.map(passage => <Passage key={passage.title} passage={passage} highlight={false} />)}
-            {question.track === 'ipa' && question.transcript && <ListeningPlayer transcript={question.transcript} src={question.audio} speed={reviewSpeed} onSpeed={setReviewSpeed} instruction="Nghe lại từ mẫu" />}
+            {question.track && question.transcript && <ListeningPlayer transcript={question.transcript} src={question.audio} speed={reviewSpeed} onSpeed={setReviewSpeed} instruction="Nghe lại" />}
             <p className="muted">Bạn chọn {record.choice === null ? '—' : optionText(question, record.choice)}</p><AnswerExplanation question={question} choice={record.choice} /></div>
         </details>
       })}

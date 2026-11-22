@@ -1,15 +1,16 @@
 import { foundationLessons } from './foundations'
 import { ipaLessons } from './ipa'
-import { ipaCourse, nextIpaLesson } from './ipaCourse'
+import { ipaCourse } from './ipaCourse'
 import { listeningSteps } from './beginnerListening'
 import { beginnerWordQuestions } from './beginnerVocabulary'
 import { questionById } from './questions'
 import { stages as originalStages, type CourseLesson } from './course'
+import { courseStages, studyLessonRoute, studyLessons } from './curriculum'
 import type { ProgressData, StudyTrack } from '../types'
 
 export const trackChoices = [
-  { id: 'starter', label: 'Tôi mất gốc tiếng Anh', description: 'Bắt đầu bằng lời chào, phát âm và từ quen thuộc.' },
-  { id: 'foundation', label: 'Tôi đã có kiến thức cơ bản', description: 'Ôn cấu trúc câu, các thì và nghe đoạn ngắn.' },
+  { id: 'starter', label: 'Tôi mất gốc tiếng Anh', description: 'Bắt đầu với bảng chữ cái, phát âm và những câu đầu tiên.' },
+  { id: 'foundation', label: 'Tôi đã có kiến thức cơ bản', description: 'Học cách nói về thời gian, nối ý, đặt câu hỏi và đọc đoạn ngắn.' },
   { id: 'toeic', label: 'Tôi muốn luyện TOEIC', description: 'Làm quen dạng bài ở mốc 350, rồi luyện chiến thuật và thi thử.' },
 ] as const satisfies readonly { id: StudyTrack; label: string; description: string }[]
 
@@ -37,29 +38,55 @@ function sets(level: string): CourseLesson[] {
   }))
 }
 
-export const learningPath = [
-  {
-    id: 'starter', title: 'Mất gốc', goal: 'Làm quen lời chào, âm, từ thường dùng và những câu đầu tiên.',
-    lessons: [grammar.hello, ...pronunciation, vocabulary, grammar.sentence, grammar.pronouns],
-  },
-  {
-    id: 'foundation', title: 'Xây nền', goal: 'Hiểu cấu trúc và mốc thời gian trong câu. Nghe, đọc câu ngắn trước khi luyện Part.',
-    lessons: [grammar.nouns, grammar.verbs, grammar.adjectives, grammar.adverbs, grammar.articles, grammar.prepositions, grammar.tenses,
-      grammar.questions, ...listening, grammar['short-reading'], grammar['toeic-bridge'], original['grammar-parts-of-speech']],
-  },
-  {
-    id: 'toeic350', title: 'TOEIC 350', goal: 'Làm quen đề bằng câu dễ, từ vựng phổ biến và bài nghe ngắn.',
-    lessons: [...sets('toeic350'), original['vocab-office'], original['part-1'], original['part-5-noun']],
-  },
-  {
-    id: 'toeic450', title: 'TOEIC 450', goal: 'Nghe ở tốc độ thông thường và áp dụng chiến thuật cho từng dạng câu.',
-    lessons: [...sets('toeic450'), original['part-2'], original['part-3'], original['part-4'], original['part-5-tense'], original['part-5']],
-  },
-  {
-    id: 'toeic550', title: 'TOEIC 550+', goal: 'Luyện bài gần format, theo dõi thời gian và ôn bẫy sau mỗi lần làm.',
-    lessons: [original['part-6'], original['part-7'], original.mini, original.mock, original.weakness, original.review, original['mock-target']],
-  },
-] as const
+interface PathModule { id: string; title: string; lessons: CourseLesson[] }
+interface PathStage {
+  id: string
+  title: string
+  goal: string
+  modules: PathModule[]
+  lessons: CourseLesson[]
+  resources?: CourseLesson[]
+}
+
+function toeicStage(id: string, title: string, goal: string, lessons: CourseLesson[]): PathStage {
+  return { id, title, goal, lessons, modules: [{ id, title, lessons }] }
+}
+
+export const learningPath: PathStage[] = [
+  ...courseStages.map(stage => {
+    const starter = stage.id === 'starter'
+    const modules = stage.modules.map(group => ({
+      id: group.id, title: group.title, lessons: group.lessons.map(lesson => ({
+        id: lesson.completionId, title: lesson.title, route: studyLessonRoute(lesson.id),
+      })),
+    }))
+    return {
+      ...stage, modules, lessons: modules.flatMap(group => group.lessons),
+      goal: starter ? 'Từ bảng chữ cái đến những câu ngắn dùng hằng ngày.' : 'Nói về thời gian, nối ý, đọc đoạn ngắn và làm quen đề TOEIC.',
+      resources: starter ? [...pronunciation, vocabulary] : [...listening, grammar.tenses, original['grammar-parts-of-speech']],
+    }
+  }),
+  toeicStage('toeic350', 'TOEIC 350', 'Làm quen đề bằng câu dễ, từ vựng phổ biến và bài nghe ngắn.',
+    [...sets('toeic350'), original['vocab-office'], original['part-1'], original['part-5-noun']]),
+  toeicStage('toeic450', 'TOEIC 450', 'Nghe ở tốc độ thông thường và áp dụng chiến thuật cho từng dạng câu.',
+    [...sets('toeic450'), original['part-2'], original['part-3'], original['part-4'], original['part-5-tense'], original['part-5']]),
+  toeicStage('toeic550', 'TOEIC 550+', 'Luyện bài gần format, theo dõi thời gian và ôn bẫy sau mỗi lần làm.',
+    [original['part-6'], original['part-7'], original.mini, original.mock, original.weakness, original.review, original['mock-target']]),
+]
+
+function sequence(lessons: CourseLesson[]) {
+  return lessons.slice(0, -1).map((lesson, index) => [lesson.id, lessons[index + 1]] as const)
+}
+
+const nextByLesson = new Map([
+  ...sequence(learningPath.flatMap(stage => stage.lessons)),
+  ...sequence(ipaCourse.map(lesson => ({ id: lesson.id, title: lesson.title, route: `ipa/lesson/${lesson.number}` }))),
+  ...sequence(listening),
+])
+
+export function nextPathLesson(completionId?: string) {
+  return completionId ? nextByLesson.get(completionId) : undefined
+}
 
 export const placementQuestions = [foundationLessons[0].questions[0], grammarCheck('sentence'), grammarCheck('tenses'), questionById.get('r5-21')!]
 
@@ -76,15 +103,12 @@ export function recommend(progress: ProgressData) {
   const completed = new Set(progress.completed)
   const active = learningPath.slice(from).find(stage => stage.lessons.some(lesson => !completed.has(lesson.id))) ?? learningPath[4]
   const next = active.lessons.find(lesson => !completed.has(lesson.id))
-  const ipaGroup = ipaLessons.find(lesson => lesson.completionId === next?.id)
-  const ipaNext = ipaGroup && nextIpaLesson(progress.completed, ipaGroup.id)
-  return { active, next: next && ipaNext ? {
-    ...next, title: 'IPA · Bài ' + ipaNext.number + ' · ' + ipaNext.title, route: 'ipa/lesson/' + ipaNext.number,
-  } : next }
+  return { active, next }
 }
 
 const attemptLists = new Map<string, readonly string[]>([
   ...foundationLessons.map(lesson => [lesson.completionId, lesson.questions.map(question => question.id)] as const),
+  ...studyLessons.map(lesson => [lesson.completionId, lesson.questions.map(question => question.id)] as const),
   ...ipaLessons.map(lesson => [lesson.completionId, [
     ...lesson.questions, ...ipaCourse.filter(item => item.group === lesson.id).flatMap(item => item.questions),
   ].map(question => question.id)] as const),

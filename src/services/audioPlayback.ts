@@ -6,6 +6,7 @@ interface AudioRequest {
   media: HTMLAudioElement | null
   text: string
   rate: number
+  allowSpeechFallback: boolean
   notify: (state: PlaybackState) => void
 }
 
@@ -110,12 +111,16 @@ export function stopAudio(owner?: symbol) {
 
 export function playAudio(request: AudioRequest) {
   stopAudio()
-  const { owner, media, text, rate, notify } = request
-  const playback: Playback = { owner, media, text, rate, notify, status: 'loading' }
+  const { media, allowSpeechFallback } = request
+  const playback: Playback = { ...request, status: 'loading' }
   active = playback
   update(playback, 'loading')
+  const useFallback = () => {
+    if (allowSpeechFallback) void speak(playback)
+    else release(playback, 'Chưa phát được tệp audio. Bấm nghe để thử lại.')
+  }
   if (!media) {
-    void speak(playback)
+    useFallback()
     return
   }
   const fallback = () => {
@@ -124,7 +129,7 @@ export function playAudio(request: AudioRequest) {
     playback.detach = undefined
     media.pause()
     playback.media = null
-    void speak(playback)
+    useFallback()
   }
   const ended = () => release(playback)
   playback.detach = () => {
@@ -133,6 +138,7 @@ export function playAudio(request: AudioRequest) {
   }
   media.addEventListener('ended', ended)
   media.addEventListener('error', fallback)
+  if (media.error) media.load()
   if (media.readyState > 0) media.currentTime = 0
   media.playbackRate = playback.rate
   media.preservesPitch = true

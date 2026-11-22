@@ -253,3 +253,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.study-module { margin-top: 17px; padding-top: 13px; border-top: 1px solid var(--line); }
+.study-module-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 5px 14px; margin-bottom: 8px; }
+.study-module-heading h3 { font-size: 1rem; }
+.study-module-heading span { font-size: .875rem; color: var(--muted); }
+.study-module .study-activity { margin-top: 6px; }
+.study-resources > summary { cursor: pointer; font-weight: 700; }
+.study-activity .study-next-lesson { padding-inline: 8px; border-radius: 8px; background: var(--blue-soft); }

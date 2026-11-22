@@ -18,6 +18,7 @@ export function Dashboard({ progress, stats, onPlan, onChoose }: {
   progress: ProgressData; stats: ReturnType<typeof getStats>; onPlan: (key: string, checked: boolean) => void; onChoose: (track: StudyTrack) => void
 }) {
   const { active, next } = recommend(progress)
+  const lessonNumber = next && active.lessons.indexOf(next) + 1
   const goal = progress.settings.dailyGoal
   const target = progress.settings.target
   const goalPercent = Math.min(100, Math.floor(stats.todaySeconds / (goal * 60) * 100))
@@ -41,7 +42,7 @@ export function Dashboard({ progress, stats, onPlan, onChoose }: {
       <div className="hero-copy">
         <span className="hero-badge"><Target size={15} /> Bạn đang ở · {active.title}</span>
         <h2 id="hero-title">{next?.title ?? 'Ôn tập và giữ phong độ'}</h2>
-        <p>{next ? <>Hôm nay học bài này theo gợi ý lộ trình. Mục tiêu TOEIC {target}+.</> : 'Bạn đã hoàn thành giai đoạn 550+. Có thể làm thêm một bài thi thử.'}</p>
+        <p>{next ? <>Bài {lessonNumber}/{active.lessons.length} · Mục tiêu TOEIC {target}+.</> : 'Bạn đã hoàn thành giai đoạn 550+. Có thể làm thêm một bài thi thử.'}</p>
         <div className="hero-actions">
           <a className="button hero-primary" href={`#${next?.route ?? 'mock-test'}`}><Play size={15} fill="currentColor" />Học tiếp</a>
           <a className="button hero-secondary" href="#roadmap">Xem lộ trình</a>
@@ -56,7 +57,7 @@ export function Dashboard({ progress, stats, onPlan, onChoose }: {
       <div className="path-progress-grid">{learningPath.map(stage => {
         const completed = stage.lessons.filter(lesson => progress.completed.includes(lesson.id)).length
         return <a className={'path-progress-item' + (progress.settings.studyTrack && stage.id === active.id ? ' current' : '')} key={stage.id} href={`#roadmap/${stage.id}`}>
-          <strong>{stage.title}</strong><span>{completed}/{stage.lessons.length} bài</span>
+          <strong>{stage.title}</strong><span>{completed}/{stage.lessons.length} bài · {accuracy(completed, stage.lessons.length)}%</span>
           <ProgressBar label={'Tiến độ ' + stage.title} value={accuracy(completed, stage.lessons.length)} />
         </a>
       })}</div>

@@ -9,10 +9,11 @@ import { ipaQuestions } from './ipa'
 import { ipaCourseQuestions } from './ipaCourse'
 import { beginnerWordQuestions } from './beginnerVocabulary'
 import { beginnerListeningQuestions } from './beginnerListening'
+import { studyQuestions } from './curriculum'
 
 export const bank = [...listeningQuestions, ...readingQuestions]
 export const questionById = new Map([
-  ...bank, ...grammarQuestions, ...vocabularyQuestions, ...foundationQuestions, ...ipaQuestions, ...ipaCourseQuestions, ...beginnerWordQuestions, ...beginnerListeningQuestions,
+  ...bank, ...grammarQuestions, ...vocabularyQuestions, ...foundationQuestions, ...studyQuestions, ...ipaQuestions, ...ipaCourseQuestions, ...beginnerWordQuestions, ...beginnerListeningQuestions,
 ].map(question => [question.id, question]))
 export const bankIds = new Set(bank.map(question => question.id))
 

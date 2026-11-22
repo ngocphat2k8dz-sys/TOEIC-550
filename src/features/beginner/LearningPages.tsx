@@ -1,36 +1,81 @@
 import { useState } from 'react'
-import { BookOpen, Check, Headphones, Play } from 'lucide-react'
+import { ArrowRight, BookOpen, Check, Headphones, Play } from 'lucide-react'
 import { ListeningPlayer } from '../../components/ListeningPlayer'
 import { MarkedText } from '../../components/QuestionContent'
 import { EmptyState, PageIntro, ProgressBar } from '../../components/UI'
 import { beginnerWordQuestions, beginnerWords } from '../../data/beginnerVocabulary'
 import { foundationLessons } from '../../data/foundations'
+import { studyLessonById, studyLessonRoute, studyLessons } from '../../data/curriculum'
+import { curriculumClip } from '../../data/curriculum/audio'
+import { studyWords } from '../../data/curriculum/words'
 import { listeningSteps } from '../../data/beginnerListening'
-import { learningPath, levelCompletion, levelPractices } from '../../data/path'
+import { learningPath, levelCompletion, levelPractices, nextPathLesson, recommend } from '../../data/path'
 import { questionById } from '../../data/questions'
 import { accuracy } from '../../progress'
 import type { ProgressData, Speed, WordStatus } from '../../types'
 import { Pronounce } from '../../components/Pronounce'
 import { learningAudio } from '../../data/learningAudio'
 import type { PracticeStarter } from './IpaPage'
+import { AlphabetChart } from './AlphabetChart'
 
-export function FoundationPage({ lessonId, completed, onPractice }: { lessonId?: string; completed: string[]; onPractice: PracticeStarter }) {
-  const lesson = lessonId ? foundationLessons.find(item => item.id === lessonId) : foundationLessons[0]
+export function FoundationPage({ lessonId, progress, onPractice }: { lessonId?: string; progress: ProgressData; onPractice: PracticeStarter }) {
+  const nextRoute = recommend(progress).next?.route
+  const id = lessonId ?? (nextRoute?.startsWith('foundation/') ? nextRoute.split('/')[1] : studyLessons[0].id)
+  const entry = studyLessonById.get(id)
+  const lesson = entry?.lesson ?? foundationLessons.find(item => item.id === id)
   if (!lesson) return <EmptyState title="Chưa tìm thấy bài này"><a className="text-link" href="#roadmap">Về lộ trình</a></EmptyState>
+  const completed = new Set(progress.completed)
+  const stageLessons = entry?.stage.modules.flatMap(group => group.lessons) ?? []
+  const stageDone = stageLessons.filter(item => completed.has(item.completionId)).length
+  const words = entry?.lesson.vocabulary.flatMap(word => studyWords.get(word) ?? []) ?? []
+  const next = nextPathLesson(lesson.completionId)
   return <>
-    <PageIntro eyebrow="Tiếng Anh nền tảng" title={lesson.title} description={lesson.goal} action={<a className="button secondary" href="#roadmap">Xem lộ trình</a>} />
+    <PageIntro eyebrow={entry ? `${entry.stage.title} · Bài ${entry.number}/${stageLessons.length}` : 'Tiếng Anh nền tảng'} title={lesson.title} description={lesson.goal}
+      action={<a className="button secondary" href={entry ? `#roadmap/${entry.stage.id}` : '#roadmap'}>Xem lộ trình</a>} />
+    {entry && <section className="panel content-panel course-lesson-progress" aria-label={`Tiến độ ${entry.stage.title}`}>
+      <div><strong>{entry.group.title}</strong><span>{stageDone}/{stageLessons.length} bài hoàn thành · {accuracy(stageDone, stageLessons.length)}%</span></div>
+      <ProgressBar label={`Tiến độ ${entry.stage.title}`} value={accuracy(stageDone, stageLessons.length)} />
+    </section>}
     <div className="dashboard-grid foundation-layout">
       <section className="panel content-panel">
-        <div className="section-heading"><div><h2>Đọc từng bước</h2></div><span className="icon-tile blue"><BookOpen size={20} /></span></div>
+        <div className="section-heading"><div><h2>{entry?.lesson.review ? 'Nhắc lại các bài vừa học' : 'Đọc từng bước'}</h2></div><span className="icon-tile blue"><BookOpen size={20} /></span></div>
         <dl className="learning-definitions">{lesson.notes.map(([title, text]) => <div key={title}><dt>{title}</dt><dd>{text}</dd></div>)}</dl>
+        {lesson.id === 'sounds' && <a className="text-link" href="#ipa">Mở khóa IPA 20 bài</a>}
       </section>
       <section className="panel content-panel">
         <div className="section-heading"><div><h2>Ví dụ ngắn</h2><p>Đọc câu rồi đối chiếu nghĩa tiếng Việt.</p></div></div>
-        <ul className="examples-list">{lesson.examples.map(([english, vietnamese]) => <li key={english}><strong lang="en">{english}</strong><p>{vietnamese}</p></li>)}</ul>
-        <button className="button primary" onClick={() => onPractice(lesson.questions, lesson.title, lesson.completionId)}><Play size={16} /> Luyện bài này</button>
-        {completed.includes(lesson.completionId) && <p className="path-done"><Check size={16} /> Đã hoàn thành bài</p>}
+        <ul className="examples-list">{lesson.examples.map(([english, vietnamese]) => <li key={english}>
+          <div className="learning-sentence"><strong lang="en">{english}</strong><Pronounce compact text={english} audioId={curriculumClip(english).id} /></div>
+          <p>{vietnamese}</p>
+        </li>)}</ul>
       </section>
     </div>
+    {lesson.id === 'alphabet' && <AlphabetChart />}
+    {words.length > 0 && <section className="panel content-panel course-lesson-words" aria-labelledby="course-word-title">
+      <div className="section-heading"><div><h2 id="course-word-title">Từ vựng trong bài</h2></div></div>
+      <ul className="course-word-grid">{words.map(word => <li key={word.word}>
+        <div className="course-word-heading"><strong lang="en">{word.word}</strong><Pronounce text={word.word} audioId={word.audioId ?? curriculumClip(word.word).id} compact /></div>
+        <p><span className="ipa-transcript">/{word.ipa}/</span> · {word.meaning}</p>
+        <div className="learning-sentence"><p lang="en">{word.example}</p><Pronounce compact text={word.example} audioId={curriculumClip(word.example).id} /></div>
+        <p className="muted">{word.translation}</p>
+      </li>)}</ul>
+    </section>}
+    <section className="panel content-panel course-lesson-practice" aria-labelledby="course-practice-title">
+      <div><h2 id="course-practice-title">{entry?.lesson.review ? 'Bài ôn tập' : 'Bài luyện'}</h2><p className="muted">{lesson.questions.length} câu có giải thích sau khi trả lời</p>
+        {completed.has(lesson.completionId) && <p className="path-done"><Check size={16} /> Đã hoàn thành bài</p>}</div>
+      <div className="button-group">
+        {next && completed.has(lesson.completionId) && <a className="button primary" href={`#${next.route}`}>Tiếp tục · {next.title}<ArrowRight size={16} /></a>}
+        <button className={`button ${next && completed.has(lesson.completionId) ? 'secondary' : 'primary'}`} onClick={() => onPractice(lesson.questions, lesson.title, lesson.completionId)}><Play size={16} /> Luyện bài này</button>
+      </div>
+    </section>
+    {entry && <details className="panel content-panel course-module-lessons">
+      <summary>Bài học trong nhóm · {entry.group.lessons.length} bài</summary>
+      <ul className="activity-list">{entry.group.lessons.map((item, index) => <li key={item.id}>
+        <span className={`icon-tile ${completed.has(item.completionId) ? 'green' : 'blue'}`}>{completed.has(item.completionId) ? <Check size={16} aria-label="Hoàn thành" /> : index + 1}</span>
+        <div><a href={`#${studyLessonRoute(item.id)}`} className="text-link" aria-current={item === entry.lesson ? 'page' : undefined}>{item.title}</a>
+          <small>{item === entry.lesson ? 'Bài đang mở' : item.completionId === next?.id ? 'Bài kế tiếp' : completed.has(item.completionId) ? 'Hoàn thành' : 'Chưa hoàn thành'}</small></div>
+      </li>)}</ul>
+    </details>}
   </>
 }
 

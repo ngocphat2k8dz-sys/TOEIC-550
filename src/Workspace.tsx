@@ -3,6 +3,7 @@ import { Shell } from './components/Shell'
 import { EmptyState } from './components/UI'
 import { StudentsPage } from './features/admin/StudentsPage'
 import { parts } from './data/course'
+import { studyLessonByCompletion, studyLessonRoute } from './data/curriculum'
 import { grammarLessons } from './data/grammar'
 import { AccountMenu } from './features/profile/AccountMenu'
 import { AccountPage } from './features/profile/AccountPage'
@@ -60,8 +61,9 @@ export default function Workspace({ auth, route }: { auth: AuthState & { user: N
 
   function practice(questions: Question[], title: string, lessonId?: string) {
     const grammar = grammarLessons.find(lesson => lesson.id === lessonId)
+    const courseLesson = lessonId && studyLessonByCompletion.get(lessonId)
     const vocabTopic = lessonId?.startsWith('vocab-quiz-') ? lessonId.slice('vocab-quiz-'.length) : undefined
-    const returnTo = grammar ? `grammar/${encodeURIComponent(grammar.topic)}`
+    const returnTo = courseLesson ? studyLessonRoute(courseLesson.lesson.id) : grammar ? `grammar/${encodeURIComponent(grammar.topic)}`
       : vocabTopic && vocabTopic !== 'all' ? `vocabulary/${encodeURIComponent(vocabTopic)}` : route
     start({ questions, title, lessonId, mode: 'practice', returnTo })
   }
@@ -116,7 +118,7 @@ export default function Workspace({ auth, route }: { auth: AuthState & { user: N
       case 'home': return <Dashboard progress={progress} stats={stats} onPlan={onPlan} onChoose={chooseTrack} />
       case 'roadmap': return <RoadmapPage progress={progress} selected={section} />
       case 'onboarding': return <Onboarding onChoose={chooseTrack} />
-      case 'foundation': return <FoundationPage lessonId={section} completed={progress.completed} onPractice={practice} />
+      case 'foundation': return <FoundationPage lessonId={section} progress={progress} onPractice={practice} />
       case 'ipa': return <IpaPage section={section} detail={focus} completed={progress.completed} onPractice={practice} />
       case 'beginner-vocabulary': return <BeginnerVocabulary progress={progress} onMark={onMark} onPractice={practice} />
       case 'beginner-listening': return <BeginnerListening stepId={section} progress={progress} onPractice={practice} />

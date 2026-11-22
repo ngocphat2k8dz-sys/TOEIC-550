@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "node --test tests/curriculum.test.mjs"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.2.0",
